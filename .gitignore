@@ -1,0 +1,22 @@
+# Installed dependencies (Render reinstalls these from package.json)
+node_modules/
+npm-debug.log*
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+
+# Local backups / archives (not part of the deployed game)
+*.zip
+old_ver/
+
+# Desktop (Tauri) build output + generated frontend copy
+dist/
+src-tauri/target/
+src-tauri/gen/
+src-tauri/icons/*.png
+src-tauri/icons/*.ico
+src-tauri/icons/*.icns
+
+# stray nested repo (was accidentally published as sinanemr/Game)
+/Game/

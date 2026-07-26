@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WHIMZOID CLASH — Battle for the Orb of Transcendence</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./css/variables.css">
+<link rel="stylesheet" href="./css/base.css">
+<link rel="stylesheet" href="./css/menus.css">
+<link rel="stylesheet" href="./css/character-select.css">
+<link rel="stylesheet" href="./css/fight.css">
+<link rel="stylesheet" href="./css/settings.css">
+<link rel="stylesheet" href="./css/online.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- TITLE -->
+  <section id="title" class="screen active">
+    <canvas id="orbCanvas" width="24" height="24"></canvas>
+    <h1>WHIMZOID<br><span>CLASH</span></h1>
+    <div class="sub">BATTLE FOR THE ORB OF TRANSCENDENCE</div>
+    <p class="lore">Deep inside Eternus Corporation, Dr. Isabella Vonstein's Sanctum of Artifacts hums with stolen power.
+    The Pinch-Master watches from his hidden dimension. Heroes, mercenaries, vampires and astral entities converge —
+    only one will claim the Orb.</p>
+    <button class="big" id="startBtn">LOCAL PLAY</button>
+    <button class="big" id="onlinePlayBtn">MULTIPLAYER</button>
+    <button class="big" id="titleSettingsBtn">SETTINGS</button>
+    <button class="big" id="exitBtn">EXIT</button>
+    <!-- Control labels are generated from js/controls.js by main.js (no hardcoded keys). -->
+    <div id="titleCtrlHelp" class="ctrlHelp"></div>
+  </section>
+
+  <!-- SELECT -->
+  <section id="select" class="screen">
+    <h2>CHOOSE YOUR FIGHTER</h2>
+    <div class="hint">Click once for Player 1 (teal) · click again for Player 2 (crimson)</div>
+    <div id="roster"></div>
+    <div id="selInfo">
+      <div class="bio" id="bio1"><b>PLAYER 1</b>Select a fighter…</div>
+      <div class="bio" id="bio2"><b>PLAYER 2</b>Select a fighter…</div>
+    </div>
+    <div id="selBottom">
+      <button id="selBackBtn">← MAIN MENU</button>
+      <label class="opt">Opponent
+        <select id="modeSel"><option value="cpu">CPU</option><option value="p2">Human (P2)</option></select>
+      </label>
+      <label class="opt">CPU level
+        <select id="diffSel"><option value="0">Novice</option><option value="1" selected>Warrior</option><option value="2">Celestial</option><option value="3">Practice (test skills)</option></select>
+      </label>
+      <label class="opt">Stage
+        <select id="stageSel">
+          <option value="0">Kabatepe Port — Karatepe İskelesi</option>
+        </select>
+      </label>
+      <button id="fightBtn" disabled>FIGHT!</button>
+    </div>
+  </section>
+
+  <!-- FIGHT -->
+  <section id="fight" class="screen">
+    <canvas id="gameCanvas" width="720" height="270"></canvas>
+    <div id="announce"></div>
+    <div id="postFight">
+      <h2 id="winTitle">VICTORY</h2>
+      <p id="winLore"></p>
+      <div class="row">
+        <button id="rematchBtn">REMATCH</button>
+        <button id="charBtn">CHARACTER SELECT</button>
+      </div>
+    </div>
+    <div id="pauseMenu">
+      <h2>PAUSED</h2>
+      <div id="pauseMain" class="row">
+        <button id="resumeBtn">RETURN TO GAME</button>
+        <button id="settingsBtn">SETTINGS</button>
+        <button id="menuBtn">MAIN MENU</button>
+      </div>
+    </div>
+    <!-- Control labels are generated from js/controls.js by main.js (no hardcoded keys). -->
+    <div id="fightCtrlHelp" class="ctrlHelp"></div>
+  </section>
+</div>
+<!-- Plain scripts in order (config + controls define globals, then the engine, then labels).
+     Classic scripts work over file:// AND http://, so index.html runs by double-click or via a server. -->
+<script src="./js/config.js"></script>
+<script src="./js/controls.js"></script>
+<script src="./js/settings.js"></script>
+<script src="./js/engine.js"></script>
+<!-- character modules (load AFTER engine.js; add one line per peeled character) -->
+<script src="./characters/haydar.js"></script>
+<script src="./characters/satori.js"></script>
+<script src="./characters/no-talking-man.js"></script>
+<script src="./characters/necaati.js"></script>
+<script src="./characters/necmi.js"></script>
+<script src="./characters/putuk.js"></script>
+<script src="./characters/agron.js"></script>
+<script src="./characters/munevver.js"></script>
+<script src="./characters/warbringer.js"></script>
+<!-- settings UI (needs engine globals; must load before main.js which wires the buttons) -->
+<script src="./js/settings-ui.js"></script>
+<!-- online play: production network config FIRST (single source of truth), then
+     state/serialization, WebSocket transport, and the online UI -->
+<script src="./js/net-config.js"></script>
+<script src="./js/online-state.js"></script>
+<script src="./js/network-client.js"></script>
+<script src="./js/online-ui.js"></script>
+<!-- main.js runs LAST: calls bootGame() to build the roster from all loaded modules -->
+<script src="./js/main.js"></script>
+</body>
+</html>

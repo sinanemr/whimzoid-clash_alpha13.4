@@ -1,0 +1,47 @@
+/* Title screen, pause menu, victory (post-fight) screen, shared menu buttons. */
+
+/* ---------- TITLE ---------- */
+#title{text-align:center; padding:40px 0;}
+#title h1{
+  font-family:'Press Start 2P',monospace; font-size:38px; line-height:1.25; color:var(--gold);
+  text-shadow:3px 3px 0 #7a4b00, 6px 6px 0 rgba(0,0,0,.55);
+}
+#title h1 span{color:var(--crimson); text-shadow:3px 3px 0 #6d0f19, 6px 6px 0 rgba(0,0,0,.55);}
+#title .sub{font-family:'Press Start 2P',monospace; margin-top:16px; color:var(--teal); font-size:9px; letter-spacing:.2em;}
+#title .lore{max-width:600px; margin:24px auto 0; color:#bdb2d8; font-size:13.5px; line-height:1.7;}
+#orbCanvas{image-rendering:pixelated; width:96px; height:96px; margin:16px auto 4px; display:block;}
+button.big{
+  font-family:'Press Start 2P',monospace; font-size:14px; padding:16px 36px; margin-top:28px;
+  background:var(--crimson); color:#fff; border:none; cursor:pointer;
+  box-shadow:0 5px 0 #7c1420, inset -3px -3px 0 rgba(0,0,0,.3), inset 3px 3px 0 rgba(255,255,255,.15);
+}
+button.big:hover{filter:brightness(1.1)}
+button.big:active{transform:translateY(4px); box-shadow:0 1px 0 #7c1420;}
+.blink{animation:blink 1.2s steps(2) infinite;}
+@keyframes blink{50%{opacity:.25}}
+
+/* ---------- PAUSE ---------- */
+#pauseMenu{
+  position:absolute; left:0; right:0; top:0; bottom:36px; display:none; flex-direction:column; align-items:center; justify-content:center;
+  background:rgba(10,7,22,.85); text-align:center; padding:20px;
+}
+#pauseMenu.show{display:flex;}
+#pauseMenu h2{font-family:'Press Start 2P',monospace; color:var(--gold); font-size:18px; line-height:1.6; margin-bottom:22px; text-shadow:2px 2px 0 #6d4a00;}
+#pauseMenu .row{display:flex; gap:14px;}
+#pauseMenu button{font-family:'Press Start 2P',monospace; font-size:10px; padding:13px 20px; border:none; cursor:pointer; background:var(--gold); color:#221500; box-shadow:0 4px 0 #8a6410;}
+#pauseMenu #menuBtn{background:var(--crimson); color:#fff; box-shadow:0 4px 0 #7c1420;}
+#pauseMenu .opt{font-family:'Press Start 2P',monospace; font-size:10px; color:#cfc4ec; display:flex; flex-direction:column; gap:8px; align-items:center;}
+#pauseMenu select{font-family:'Press Start 2P',monospace; font-size:9px; padding:8px;}
+
+/* ---------- VICTORY / POST-FIGHT ---------- */
+#postFight{
+  position:absolute; left:0; right:0; top:0; bottom:36px; display:none; flex-direction:column; align-items:center; justify-content:center;
+  background:rgba(10,7,22,.85); text-align:center; padding:20px;
+}
+#postFight.show{display:flex;}
+#postFight h2{font-family:'Press Start 2P',monospace; color:var(--gold); font-size:18px; line-height:1.6; margin-bottom:12px; text-shadow:2px 2px 0 #6d4a00;}
+#postFight p{color:#cfc4ec; max-width:560px; font-size:13.5px; line-height:1.65; margin-bottom:22px;}
+#postFight .row{display:flex; gap:14px;}
+#postFight button{font-family:'Press Start 2P',monospace; font-size:10px; padding:13px 20px; border:none; cursor:pointer;}
+#rematchBtn{background:var(--crimson); color:#fff; box-shadow:0 4px 0 #7c1420;}
+#charBtn{background:var(--teal); color:#03211d; box-shadow:0 4px 0 #1b6b62;}

@@ -1,0 +1,13 @@
+# Render.com Blueprint for Whimzoid Clash online play (free tier).
+# You don't strictly need this file — the "New Web Service" flow in
+# DEPLOY-ONLINE.md auto-detects everything. It's here for one-click
+# "New + -> Blueprint" deploys if you prefer.
+services:
+  - type: web
+    name: whimzoid-clash
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /
+    autoDeploy: true

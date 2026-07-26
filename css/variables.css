@@ -1,0 +1,9 @@
+/* Theme colors + responsive game-width variable.
+   --game-display-width is set at runtime by config.applyViewport()
+   to viewport.width * renderScale, so changing the viewport in js/config.js
+   updates the fight-screen width with no CSS edits. */
+:root{
+  --night:#120e22; --panel:#1d1735; --gold:#f2b632; --crimson:#e2384a;
+  --teal:#3fd8c7; --bone:#efe6d2; --violet:#8f6cf0;
+  --game-display-width:1440px;   /* fallback until applyViewport() runs (720 * 2) */
+}

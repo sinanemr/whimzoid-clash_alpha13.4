@@ -1,0 +1,15 @@
+/* Resets, body, app shell, shared utilities. */
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  background:
+    repeating-linear-gradient(0deg, rgba(0,0,0,.12) 0 2px, transparent 2px 4px),
+    radial-gradient(ellipse at 50% 20%, #241c44 0%, var(--night) 65%);
+  color:var(--bone); font-family:'Space Grotesk',sans-serif;
+  min-height:100vh; display:flex; align-items:center; justify-content:center; overflow:hidden;
+}
+#app{width:960px; max-width:98vw; user-select:none;}
+#app.wide{width:var(--game-display-width); max-width:98vw;}   /* fight screen: canvas at crisp renderScale */
+.screen{display:none;}
+.screen.active{display:block;}
+.px{font-family:'Press Start 2P',monospace;}
+kbd{background:#2b2352; border:1px solid #4b3f86; border-radius:4px; padding:1px 6px; font-family:'Space Grotesk'; font-size:11px; color:var(--bone);}

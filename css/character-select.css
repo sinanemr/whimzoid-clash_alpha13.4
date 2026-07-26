@@ -1,0 +1,39 @@
+/* Character-select roster grid, cards, selection borders, bio panels, select controls. */
+#select{padding:12px 0;}
+#select h2{font-family:'Press Start 2P',monospace; text-align:center; color:var(--gold); font-size:15px; margin-bottom:8px; text-shadow:2px 2px 0 #6d4a00;}
+#select .hint{text-align:center; color:#9d92c2; font-size:12px; margin-bottom:12px;}
+#roster{display:grid; grid-template-columns:repeat(6,1fr); gap:8px;}
+.card{
+  background:var(--panel); border:2px solid #322a58; padding:8px 6px 7px;
+  text-align:center; cursor:pointer; transition:transform .08s; position:relative;
+  image-rendering:pixelated;
+}
+.card:hover{transform:translateY(-3px);}
+.card canvas{width:116px;height:auto;image-rendering:pixelated;margin:0 -26px;}
+.card .nm{font-family:'Press Start 2P',monospace; font-size:7px; color:var(--bone); line-height:1.5; min-height:22px; margin-top:4px;}
+.card .ep{font-size:9px; color:var(--teal); letter-spacing:.05em; text-transform:uppercase;}
+.card.p1sel{border-color:var(--teal); box-shadow:0 0 0 2px var(--teal), 0 0 16px rgba(63,216,199,.4);}
+.card.p2sel{border-color:var(--crimson); box-shadow:0 0 0 2px var(--crimson), 0 0 16px rgba(226,56,74,.45);}
+.card.p1sel.p2sel{box-shadow:0 0 0 2px var(--teal), 0 0 0 5px var(--crimson);}
+.tag{position:absolute; top:-10px; font-family:'Press Start 2P',monospace; font-size:7px; padding:3px 5px; color:#0d0a1c;}
+.tag.t1{left:-4px; background:var(--teal);}
+.tag.t2{right:-4px; background:var(--crimson); color:#fff;}
+#selInfo{display:flex; justify-content:space-between; gap:10px; margin-top:12px;}
+.bio{flex:1; background:var(--panel); border:2px solid #322a58; padding:10px 14px; height:200px; overflow-y:auto; font-size:11px; color:#c9bfe6; line-height:1.5;}
+.bio::-webkit-scrollbar{width:8px;}
+.bio::-webkit-scrollbar-thumb{background:#453a7d; border-radius:4px;}
+.bio::-webkit-scrollbar-track{background:#231d40;}
+.bio b{color:var(--gold); font-family:'Press Start 2P',monospace; font-size:8px; display:block; margin-bottom:6px;}
+.bio .sp{color:var(--crimson); font-weight:700;}
+#selBottom{display:flex; align-items:center; justify-content:center; gap:16px; margin-top:14px; flex-wrap:wrap;}
+.opt{display:flex; align-items:center; gap:8px; font-size:13px; color:#c9bfe6;}
+select,#selBottom button{
+  font-family:'Space Grotesk'; background:#2a2250; color:var(--bone);
+  border:1px solid #453a7d; padding:7px 12px; font-size:13px; cursor:pointer;
+}
+#fightBtn{font-family:'Press Start 2P',monospace; background:var(--gold); color:#221500; border:none; font-size:12px; padding:12px 28px; box-shadow:0 4px 0 #8a6410;}
+#fightBtn:disabled{opacity:.4; cursor:not-allowed;}
+
+/* coming-soon (locked) roster card */
+.card.soon{cursor:not-allowed;}
+.card.soon:hover{transform:none;}

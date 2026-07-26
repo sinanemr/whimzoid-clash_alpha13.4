@@ -1,0 +1,963 @@
+{
+  "char:agron": {
+    "attack": {
+      "dx": 7,
+      "file": "assets/characters/agron/attack.png",
+      "h": 71,
+      "w": 72
+    },
+    "attack2": {
+      "dx": 10,
+      "file": "assets/characters/agron/attack2.png",
+      "h": 67,
+      "w": 86
+    },
+    "attack3": {
+      "dx": 8,
+      "file": "assets/characters/agron/attack3.png",
+      "h": 75,
+      "w": 75
+    },
+    "block": {
+      "dx": -6,
+      "file": "assets/characters/agron/block.png",
+      "h": 70,
+      "w": 69
+    },
+    "crouch": {
+      "dx": -4,
+      "file": "assets/characters/agron/crouch.png",
+      "h": 55,
+      "w": 70
+    },
+    "fly": {
+      "dx": -1,
+      "file": "assets/characters/agron/fly.png",
+      "foot": 3,
+      "h": 72,
+      "w": 62
+    },
+    "hit": {
+      "dx": -2,
+      "file": "assets/characters/agron/hit.png",
+      "h": 76,
+      "w": 47
+    },
+    "idle": {
+      "dx": 2,
+      "file": "assets/characters/agron/idle.png",
+      "h": 72,
+      "w": 70
+    },
+    "jump": {
+      "dx": 4,
+      "file": "assets/characters/agron/jump.png",
+      "foot": 2,
+      "h": 69,
+      "w": 68
+    },
+    "ko": {
+      "dx": 1,
+      "file": "assets/characters/agron/ko.png",
+      "foot": 1,
+      "h": 26,
+      "w": 84
+    },
+    "run0": {
+      "dx": 5,
+      "file": "assets/characters/agron/run0.png",
+      "foot": 1,
+      "h": 71,
+      "w": 79
+    },
+    "skillA": {
+      "dx": 16,
+      "file": "assets/characters/agron/skillA.png",
+      "h": 47,
+      "w": 88
+    },
+    "skillB": {
+      "dx": 9,
+      "file": "assets/characters/agron/skillB.png",
+      "foot": 3,
+      "h": 72,
+      "w": 90
+    },
+    "skillB2": {
+      "dx": 5,
+      "file": "assets/characters/agron/skillB2.png",
+      "foot": 1,
+      "h": 69,
+      "w": 69
+    },
+    "skillB3": {
+      "dx": 1,
+      "file": "assets/characters/agron/skillB3.png",
+      "h": 72,
+      "w": 69
+    },
+    "skillB4": {
+      "dx": 8,
+      "file": "assets/characters/agron/skillB4.png",
+      "h": 72,
+      "w": 90
+    },
+    "skillC": {
+      "dx": 1,
+      "file": "assets/characters/agron/skillC.png",
+      "foot": 7,
+      "h": 89,
+      "w": 94
+    },
+    "skillC2": {
+      "dx": 9,
+      "file": "assets/characters/agron/skillC2.png",
+      "foot": 1,
+      "h": 96,
+      "w": 98
+    },
+    "skillC3": {
+      "dx": 6,
+      "file": "assets/characters/agron/skillC3.png",
+      "h": 77,
+      "w": 97
+    },
+    "ult1": {
+      "dx": 2,
+      "file": "assets/characters/agron/ult1.png",
+      "h": 72,
+      "w": 88
+    },
+    "ult2": {
+      "dx": 4,
+      "file": "assets/characters/agron/ult2.png",
+      "h": 69,
+      "w": 83
+    }
+  },
+  "char:akira": {
+    "attack": {
+      "file": "assets/characters/akira/attack.png",
+      "h": 66,
+      "w": 52
+    },
+    "hit": {
+      "file": "assets/characters/akira/hit.png",
+      "h": 76,
+      "w": 33
+    },
+    "idle": {
+      "file": "assets/characters/akira/idle.png",
+      "h": 72,
+      "w": 33
+    }
+  },
+  "char:ember": {
+    "attack": {
+      "file": "assets/characters/emberstrike/attack.png",
+      "h": 64,
+      "w": 52
+    },
+    "hit": {
+      "file": "assets/characters/emberstrike/hit.png",
+      "h": 63,
+      "w": 39
+    },
+    "idle": {
+      "file": "assets/characters/emberstrike/idle.png",
+      "h": 72,
+      "w": 40
+    }
+  },
+  "char:haydar": {
+    "attack": {
+      "dx": -8,
+      "file": "assets/characters/haydar/attack.png",
+      "h": 80,
+      "w": 80
+    },
+    "attack2": {
+      "dx": -8,
+      "file": "assets/characters/haydar/attack2.png",
+      "h": 80,
+      "w": 80
+    },
+    "attack3": {
+      "dx": -8,
+      "file": "assets/characters/haydar/attack3.png",
+      "h": 80,
+      "w": 80
+    },
+    "block": {
+      "dx": -8,
+      "file": "assets/characters/haydar/block.png",
+      "h": 80,
+      "w": 80
+    },
+    "crouch": {
+      "dx": -8,
+      "file": "assets/characters/haydar/crouch.png",
+      "h": 80,
+      "w": 80
+    },
+    "hit": {
+      "file": "assets/characters/haydar/hit.png",
+      "h": 72,
+      "w": 38
+    },
+    "idle": {
+      "dx": -8,
+      "file": "assets/characters/haydar/idle.png",
+      "foot": 1,
+      "h": 80,
+      "w": 80
+    },
+    "jump": {
+      "dx": -8,
+      "file": "assets/characters/haydar/jump.png",
+      "h": 80,
+      "w": 80
+    },
+    "ko": {
+      "dx": -8,
+      "file": "assets/characters/haydar/ko.png",
+      "h": 80,
+      "w": 80
+    },
+    "run0": {
+      "dx": -8,
+      "file": "assets/characters/haydar/run0.png",
+      "h": 80,
+      "w": 80
+    },
+    "run1": {
+      "dx": -8,
+      "file": "assets/characters/haydar/run1.png",
+      "h": 80,
+      "w": 80
+    },
+    "run2": {
+      "dx": -8,
+      "file": "assets/characters/haydar/run2.png",
+      "h": 80,
+      "w": 80
+    },
+    "run3": {
+      "dx": -8,
+      "file": "assets/characters/haydar/run3.png",
+      "h": 80,
+      "w": 80
+    },
+    "skillA": {
+      "dx": -8,
+      "file": "assets/characters/haydar/skillA.png",
+      "h": 80,
+      "w": 80
+    },
+    "skillA2": {
+      "dx": -8,
+      "file": "assets/characters/haydar/skillA2.png",
+      "h": 80,
+      "w": 80
+    },
+    "skillB": {
+      "dx": -8,
+      "file": "assets/characters/haydar/skillB.png",
+      "h": 80,
+      "w": 80
+    },
+    "skillBc": {
+      "dx": -8,
+      "file": "assets/characters/haydar/skillBc.png",
+      "h": 80,
+      "w": 80
+    },
+    "skillC": {
+      "dx": -8,
+      "file": "assets/characters/haydar/skillC.png",
+      "h": 80,
+      "w": 80
+    },
+    "ult1": {
+      "dx": -8,
+      "file": "assets/characters/haydar/ult1.png",
+      "h": 80,
+      "w": 80
+    },
+    "ult2": {
+      "dx": -8,
+      "file": "assets/characters/haydar/ult2.png",
+      "h": 80,
+      "w": 80
+    }
+  },
+  "char:munevver": {
+    "attack": {
+      "file": "assets/characters/munevver/attack.png",
+      "foot": -3,
+      "h": 62,
+      "w": 56
+    },
+    "attack2": {
+      "dx": -7,
+      "file": "assets/characters/munevver/attack2.png",
+      "h": 70,
+      "w": 54
+    },
+    "block": {
+      "dx": 3,
+      "file": "assets/characters/munevver/block.png",
+      "h": 69,
+      "w": 42
+    },
+    "crouch": {
+      "file": "assets/characters/munevver/crouch.png",
+      "foot": 1,
+      "h": 53,
+      "w": 45
+    },
+    "hit": {
+      "dx": 2,
+      "file": "assets/characters/munevver/hit.png",
+      "foot": -2,
+      "h": 65,
+      "w": 50
+    },
+    "idle": {
+      "dx": 3,
+      "file": "assets/characters/munevver/run.png",
+      "h": 72,
+      "w": 43
+    },
+    "jump": {
+      "dx": -1,
+      "file": "assets/characters/munevver/jump.png",
+      "foot": -2,
+      "h": 70,
+      "w": 67
+    },
+    "ko": {
+      "file": "assets/characters/munevver/ko.png",
+      "foot": 2,
+      "h": 34,
+      "w": 70
+    },
+    "run": {
+      "dx": 3,
+      "file": "assets/characters/munevver/run.png",
+      "h": 72,
+      "w": 43
+    },
+    "skillA": {
+      "dx": 3,
+      "file": "assets/characters/munevver/skillA.png",
+      "foot": -8,
+      "h": 66,
+      "w": 63
+    },
+    "skillA2": {
+      "dx": 3,
+      "file": "assets/characters/munevver/skillA2.png",
+      "foot": -8,
+      "h": 59,
+      "w": 77
+    },
+    "skillB": {
+      "dx": 5,
+      "file": "assets/characters/munevver/skillB.png",
+      "foot": -3,
+      "h": 67,
+      "w": 60
+    },
+    "skillC": {
+      "file": "assets/characters/munevver/skillC.png",
+      "foot": -1,
+      "h": 68,
+      "w": 76
+    },
+    "ult1": {
+      "dx": 7,
+      "file": "assets/characters/munevver/ult1.png",
+      "foot": 3,
+      "h": 70,
+      "w": 63
+    },
+    "ult2": {
+      "dx": 2,
+      "file": "assets/characters/munevver/ult2.png",
+      "foot": 3,
+      "h": 95,
+      "w": 100
+    }
+  },
+  "char:necaati": {
+    "attack": {
+      "file": "assets/characters/necaati/attack.png",
+      "h": 61,
+      "w": 54
+    },
+    "hit": {
+      "file": "assets/characters/necaati/hit.png",
+      "h": 72,
+      "w": 37
+    },
+    "idle": {
+      "file": "assets/characters/necaati/idle.png",
+      "h": 72,
+      "w": 42
+    }
+  },
+  "char:necmi": {
+    "attack": {
+      "file": "assets/characters/necmi/attack.png",
+      "h": 63,
+      "w": 78
+    },
+    "attack2": {
+      "file": "assets/characters/necmi/attack2.png",
+      "h": 70,
+      "w": 75
+    },
+    "attack3": {
+      "file": "assets/characters/necmi/attack3.png",
+      "h": 71,
+      "w": 77
+    },
+    "block": {
+      "file": "assets/characters/necmi/block.png",
+      "h": 69,
+      "w": 61
+    },
+    "crouch": {
+      "file": "assets/characters/necmi/crouch.png",
+      "h": 56,
+      "w": 32
+    },
+    "ghostfly": {
+      "file": "assets/characters/necmi/ghostfly.png",
+      "h": 46,
+      "w": 66
+    },
+    "ghostfly2": {
+      "file": "assets/characters/necmi/ghostfly2.png",
+      "h": 46,
+      "w": 52
+    },
+    "ghostpossess": {
+      "file": "assets/characters/necmi/ghostpossess.png",
+      "h": 52,
+      "w": 41
+    },
+    "ghostpossess2": {
+      "file": "assets/characters/necmi/ghostpossess2.png",
+      "h": 68,
+      "w": 54
+    },
+    "hijackswarm": {
+      "file": "assets/characters/necmi/hijackswarm.png",
+      "h": 58,
+      "w": 44
+    },
+    "hijackwalker": {
+      "file": "assets/characters/necmi/hijackwalker.png",
+      "h": 30,
+      "w": 62
+    },
+    "hijackwalker2": {
+      "file": "assets/characters/necmi/hijackwalker2.png",
+      "h": 25,
+      "w": 58
+    },
+    "hijackwalker3": {
+      "file": "assets/characters/necmi/hijackwalker3.png",
+      "h": 29,
+      "w": 58
+    },
+    "hit": {
+      "file": "assets/characters/necmi/hit.png",
+      "h": 68,
+      "w": 40
+    },
+    "idle": {
+      "file": "assets/characters/necmi/idle.png",
+      "h": 72,
+      "w": 28
+    },
+    "jump": {
+      "file": "assets/characters/necmi/jump.png",
+      "h": 62,
+      "w": 50
+    },
+    "ko": {
+      "file": "assets/characters/necmi/ko.png",
+      "h": 39,
+      "w": 78
+    },
+    "pinchmass": {
+      "file": "assets/characters/necmi/pinchmass.png",
+      "h": 15,
+      "w": 20
+    },
+    "run0": {
+      "file": "assets/characters/necmi/run0.png",
+      "h": 70,
+      "w": 41
+    },
+    "run1": {
+      "file": "assets/characters/necmi/run1.png",
+      "h": 70,
+      "w": 36
+    },
+    "run2": {
+      "file": "assets/characters/necmi/run2.png",
+      "h": 70,
+      "w": 46
+    },
+    "run3": {
+      "file": "assets/characters/necmi/run3.png",
+      "h": 70,
+      "w": 35
+    },
+    "skillA": {
+      "file": "assets/characters/necmi/skillA.png",
+      "h": 68,
+      "w": 58
+    },
+    "skillA2": {
+      "file": "assets/characters/necmi/skillA2.png",
+      "h": 70,
+      "w": 48
+    },
+    "skillB": {
+      "file": "assets/characters/necmi/skillB.png",
+      "h": 71,
+      "w": 49
+    },
+    "skillB3": {
+      "file": "assets/characters/necmi/skillB3.png",
+      "h": 58,
+      "w": 44
+    },
+    "skillC": {
+      "file": "assets/characters/necmi/skillC.png",
+      "h": 70,
+      "w": 51
+    },
+    "skillC2": {
+      "file": "assets/characters/necmi/skillC2.png",
+      "h": 71,
+      "w": 66
+    },
+    "skillC3": {
+      "file": "assets/characters/necmi/skillC3.png",
+      "h": 71,
+      "w": 54
+    },
+    "skillC4": {
+      "file": "assets/characters/necmi/skillC4.png",
+      "h": 66,
+      "w": 63
+    },
+    "ult": {
+      "file": "assets/characters/necmi/ult.png",
+      "h": 71,
+      "w": 41
+    }
+  },
+  "char:notalk": {
+    "attack": {
+      "dx": 2,
+      "file": "assets/characters/no-talking-man/attack.png",
+      "h": 66,
+      "w": 69
+    },
+    "attack2": {
+      "dx": 4,
+      "file": "assets/characters/no-talking-man/attack2.png",
+      "h": 69,
+      "w": 78
+    },
+    "block": {
+      "dx": -2,
+      "file": "assets/characters/no-talking-man/block.png",
+      "h": 72,
+      "w": 33
+    },
+    "crouch": {
+      "file": "assets/characters/no-talking-man/crouch.png",
+      "h": 62,
+      "w": 41
+    },
+    "hit": {
+      "dx": -1,
+      "file": "assets/characters/no-talking-man/hit.png",
+      "h": 73,
+      "w": 36
+    },
+    "idle": {
+      "file": "assets/characters/no-talking-man/idle.png",
+      "h": 72,
+      "w": 29
+    },
+    "jump": {
+      "dx": 2,
+      "file": "assets/characters/no-talking-man/jump.png",
+      "foot": 12,
+      "h": 59,
+      "w": 51
+    },
+    "ko": {
+      "file": "assets/characters/no-talking-man/ko.png",
+      "h": 76,
+      "w": 36
+    },
+    "run0": {
+      "file": "assets/characters/no-talking-man/run0.png",
+      "h": 73,
+      "w": 33
+    },
+    "run1": {
+      "dx": 1,
+      "file": "assets/characters/no-talking-man/run1.png",
+      "h": 73,
+      "w": 25
+    },
+    "run2": {
+      "file": "assets/characters/no-talking-man/run2.png",
+      "h": 73,
+      "w": 32
+    },
+    "skillA": {
+      "dx": 11,
+      "file": "assets/characters/no-talking-man/skillA.png",
+      "h": 68,
+      "w": 79
+    },
+    "skillB": {
+      "dx": 5,
+      "file": "assets/characters/no-talking-man/skillB.png",
+      "h": 69,
+      "w": 70
+    },
+    "skillC": {
+      "dx": 10,
+      "file": "assets/characters/no-talking-man/skillC.png",
+      "h": 72,
+      "w": 49
+    },
+    "ult": {
+      "dx": 3,
+      "file": "assets/characters/no-talking-man/ult.png",
+      "h": 79,
+      "w": 80
+    }
+  },
+  "char:putuk": {
+    "attack": {
+      "dx": 0,
+      "file": "assets/characters/putuk/attack.png",
+      "foot": 2,
+      "h": 80,
+      "w": 80
+    },
+    "attack2": {
+      "dx": 0,
+      "file": "assets/characters/putuk/attack2.png",
+      "foot": 2,
+      "h": 75,
+      "w": 75
+    },
+    "block": {
+      "dx": 0,
+      "file": "assets/characters/putuk/block.png",
+      "foot": 2,
+      "h": 80,
+      "w": 80
+    },
+    "crouch": {
+      "dx": 0,
+      "file": "assets/characters/putuk/crouch.png",
+      "foot": 2,
+      "h": 80,
+      "w": 80
+    },
+    "hit": {
+      "dx": 0,
+      "file": "assets/characters/putuk/hit.png",
+      "foot": 2,
+      "h": 80,
+      "w": 80
+    },
+    "idle": {
+      "dx": 0,
+      "file": "assets/characters/putuk/idle.png",
+      "foot": 2,
+      "h": 80,
+      "w": 80
+    },
+    "jump": {
+      "dx": 0,
+      "file": "assets/characters/putuk/jump.png",
+      "foot": 2,
+      "h": 75,
+      "w": 75
+    },
+    "ko": {
+      "dx": 0,
+      "file": "assets/characters/putuk/ko.png",
+      "foot": 2,
+      "h": 80,
+      "w": 80
+    },
+    "run0": {
+      "dx": 0,
+      "file": "assets/characters/putuk/run0.png",
+      "foot": 2,
+      "h": 80,
+      "w": 80
+    },
+    "run1": {
+      "dx": 0,
+      "file": "assets/characters/putuk/run1.png",
+      "foot": 2,
+      "h": 80,
+      "w": 80
+    },
+    "skillA": {
+      "dx": 0,
+      "file": "assets/characters/putuk/skillA.png",
+      "foot": 2,
+      "h": 80,
+      "w": 80
+    },
+    "skillB": {
+      "dx": 0,
+      "file": "assets/characters/putuk/skillB.png",
+      "foot": 2,
+      "h": 75,
+      "w": 75
+    },
+    "skillC": {
+      "dx": 0,
+      "file": "assets/characters/putuk/skillC.png",
+      "foot": 2,
+      "h": 80,
+      "w": 80
+    },
+    "skillC2": {
+      "dx": 0,
+      "file": "assets/characters/putuk/skillC2.png",
+      "foot": 2,
+      "h": 67,
+      "w": 67
+    },
+    "ult1": {
+      "dx": 0,
+      "file": "assets/characters/putuk/ult1.png",
+      "foot": 2,
+      "h": 87,
+      "w": 87
+    },
+    "ult2": {
+      "dx": 0,
+      "file": "assets/characters/putuk/ult2.png",
+      "foot": 2,
+      "h": 95,
+      "w": 95
+    }
+  },
+  "char:satori": {
+    "attack": {
+      "file": "assets/characters/satori/attack.png",
+      "h": 72,
+      "w": 66
+    },
+    "attack2": {
+      "file": "assets/characters/satori/attack2.png",
+      "h": 72,
+      "w": 68
+    },
+    "block": {
+      "file": "assets/characters/satori/block.png",
+      "h": 67,
+      "w": 81
+    },
+    "crouch": {
+      "file": "assets/characters/satori/crouch.png",
+      "h": 54,
+      "w": 57
+    },
+    "hit": {
+      "file": "assets/characters/satori/hit.png",
+      "h": 71,
+      "w": 55
+    },
+    "idle": {
+      "file": "assets/characters/satori/idle.png",
+      "h": 72,
+      "w": 49
+    },
+    "jump": {
+      "file": "assets/characters/satori/jump.png",
+      "h": 74,
+      "w": 54
+    },
+    "ko": {
+      "file": "assets/characters/satori/ko.png",
+      "h": 34,
+      "w": 92
+    },
+    "run0": {
+      "file": "assets/characters/satori/run0.png",
+      "h": 72,
+      "w": 57
+    },
+    "run1": {
+      "dx": -6,
+      "file": "assets/characters/satori/run1.png",
+      "h": 72,
+      "w": 58
+    },
+    "skillA": {
+      "file": "assets/characters/satori/skillA.png",
+      "h": 76,
+      "w": 84
+    },
+    "skillB": {
+      "file": "assets/characters/satori/skillB.png",
+      "h": 78,
+      "w": 114
+    },
+    "skillC": {
+      "file": "assets/characters/satori/skillC.png",
+      "h": 74,
+      "w": 118
+    },
+    "ult1": {
+      "file": "assets/characters/satori/ult1.png",
+      "h": 85,
+      "w": 97
+    },
+    "ult2": {
+      "file": "assets/characters/satori/ult2.png",
+      "h": 80,
+      "w": 102
+    }
+  },
+  "char:warbringer": {
+    "attack": {
+      "file": "assets/characters/warbringer/attack.png",
+      "h": 71,
+      "w": 77
+    },
+    "attack2": {
+      "file": "assets/characters/warbringer/attack2.png",
+      "h": 73,
+      "w": 61
+    },
+    "block": {
+      "file": "assets/characters/warbringer/block.png",
+      "h": 73,
+      "w": 48
+    },
+    "crouch": {
+      "file": "assets/characters/warbringer/crouch.png",
+      "h": 57,
+      "w": 61
+    },
+    "hit": {
+      "file": "assets/characters/warbringer/hit.png",
+      "h": 71,
+      "w": 64
+    },
+    "idle": {
+      "file": "assets/characters/warbringer/idle.png",
+      "h": 72,
+      "w": 46
+    },
+    "jump": {
+      "file": "assets/characters/warbringer/jump.png",
+      "h": 78,
+      "w": 49
+    },
+    "ko": {
+      "file": "assets/characters/warbringer/ko.png",
+      "h": 28,
+      "w": 77
+    },
+    "run0": {
+      "file": "assets/characters/warbringer/run0.png",
+      "h": 72,
+      "w": 72
+    },
+    "run1": {
+      "file": "assets/characters/warbringer/run1.png",
+      "h": 72,
+      "w": 72
+    },
+    "run2": {
+      "file": "assets/characters/warbringer/run2.png",
+      "h": 72,
+      "w": 72
+    },
+    "run3": {
+      "file": "assets/characters/warbringer/run3.png",
+      "h": 72,
+      "w": 72
+    },
+    "run4": {
+      "file": "assets/characters/warbringer/run4.png",
+      "h": 72,
+      "w": 72
+    },
+    "skillA": {
+      "file": "assets/characters/warbringer/skillA.png",
+      "h": 73,
+      "w": 95
+    },
+    "skillB": {
+      "file": "assets/characters/warbringer/skillB.png",
+      "h": 72,
+      "w": 88
+    },
+    "skillC": {
+      "file": "assets/characters/warbringer/skillC.png",
+      "h": 72,
+      "w": 83
+    },
+    "ult": {
+      "file": "assets/characters/warbringer/ult.png",
+      "h": 72,
+      "w": 63
+    }
+  },
+  "fx": {
+    "xslash": {
+      "file": "assets/effects/xslash.png",
+      "h": 42,
+      "w": 84
+    }
+  },
+  "projectiles": {
+    "rocket": {
+      "file": "assets/projectiles/rocket.png",
+      "h": 7,
+      "w": 25
+    },
+    "shuriken": {
+      "file": "assets/projectiles/shuriken.png",
+      "h": 17,
+      "w": 17
+    },
+    "spike": {
+      "file": "assets/projectiles/spike.png",
+      "h": 13,
+      "w": 24
+    }
+  },
+  "stage": {
+    "background": {
+      "file": "assets/stages/kabatepe/background.png"
+    }
+  }
+}

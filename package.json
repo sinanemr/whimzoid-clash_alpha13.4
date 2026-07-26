@@ -1,0 +1,21 @@
+{
+  "name": "whimzoid-clash",
+  "version": "13.4.0",
+  "private": true,
+  "description": "Whimzoid Clash — pixel-art fighting game with private online 1v1 (host-authoritative).",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server/server.js",
+    "build:frontend": "node scripts/build-frontend.js",
+    "tauri": "tauri"
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2"
+  }
+}

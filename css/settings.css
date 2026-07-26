@@ -1,0 +1,143 @@
+/* Settings overlay — matches the game's pixel-art style (Press Start 2P headings,
+   gold accents, violet panels, teal P1 / crimson P2). */
+
+#settingsOverlay{
+  position:fixed; inset:0; z-index:1000; display:none;
+  background:rgba(8,6,18,.86);
+  align-items:center; justify-content:center;
+  font-family:'Space Grotesk',sans-serif;
+  padding:16px;
+}
+#settingsOverlay.show{ display:flex; }
+
+.settings-panel{
+  width:760px; max-width:96vw; max-height:94vh; display:flex; flex-direction:column;
+  background:var(--panel); border:3px solid #4b3f86;
+  box-shadow:0 18px 60px rgba(0,0,0,.7), inset 0 0 0 2px #2a2250;
+}
+.settings-panel h2{
+  font-family:'Press Start 2P',monospace; color:var(--gold); font-size:16px; text-align:center;
+  padding:16px; text-shadow:2px 2px 0 #6d4a00; border-bottom:2px solid #322a58; letter-spacing:.06em;
+}
+
+.settings-body{ display:flex; min-height:0; flex:1; }
+
+/* ---- tab column ---- */
+.settings-tabs{ display:flex; flex-direction:column; gap:6px; padding:14px 10px; border-right:2px solid #322a58; background:#191430; min-width:140px; }
+.settings-tab{
+  font-family:'Press Start 2P',monospace; font-size:8px; text-align:left; letter-spacing:.04em;
+  padding:11px 10px; background:#2a2250; color:#cfc4ec; border:1px solid #453a7d; cursor:pointer;
+}
+.settings-tab:hover{ filter:brightness(1.15); }
+.settings-tab.active{ background:var(--gold); color:#221500; border-color:#8a6410; }
+.settings-tab:focus-visible{ outline:2px solid var(--teal); outline-offset:1px; }
+
+/* ---- content column ---- */
+.settings-content{ flex:1; padding:16px 18px; overflow-y:auto; min-width:0; }
+.settings-content::-webkit-scrollbar{ width:10px; }
+.settings-content::-webkit-scrollbar-thumb{ background:#453a7d; }
+.settings-page{ display:none; }
+.settings-page.active{ display:block; }
+.settings-page h3{ font-family:'Press Start 2P',monospace; font-size:9px; color:var(--teal); margin:4px 0 12px; letter-spacing:.05em; }
+.settings-page h3.p2{ color:var(--crimson); }
+
+.settings-row{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:9px 4px; border-bottom:1px solid #2a2448; min-height:40px;
+}
+.settings-row .label{ font-size:13px; color:#e7ddf6; }
+.settings-row .sub{ display:block; font-size:10.5px; color:#9d92c2; margin-top:2px; }
+.settings-row.changed .label::after{ content:" ●"; color:var(--gold); }
+.settings-row .ctl{ display:flex; align-items:center; gap:8px; flex-shrink:0; }
+.next-match{ font-family:'Press Start 2P',monospace; font-size:6.5px; color:var(--gold); background:#2a2250; border:1px solid #6d4a00; padding:3px 5px; }
+
+/* ---- < value > stepper ---- */
+.stepper{ display:flex; align-items:center; gap:6px; }
+.stepper button{ font-family:'Press Start 2P',monospace; font-size:10px; background:#2a2250; color:var(--bone); border:1px solid #453a7d; width:24px; height:24px; cursor:pointer; }
+.stepper button:hover{ filter:brightness(1.2); }
+.stepper .val{ font-family:'Press Start 2P',monospace; font-size:8px; color:var(--gold); min-width:96px; text-align:center; }
+
+/* ---- toggle ---- */
+.toggle{ font-family:'Press Start 2P',monospace; font-size:8px; width:64px; height:26px; border:2px solid #453a7d; background:#241d40; color:#8b81b0; cursor:pointer; }
+.toggle.on{ background:var(--teal); color:#03211d; border-color:#1b6b62; }
+
+/* ---- slider ---- */
+.slider-wrap{ display:flex; align-items:center; gap:8px; }
+.slider-wrap input[type=range]{ width:140px; accent-color:var(--teal); }
+.slider-wrap .pct{ font-family:'Press Start 2P',monospace; font-size:8px; color:var(--gold); min-width:42px; text-align:right; }
+
+/* ---- key binding button ---- */
+.bindrow{ display:grid; grid-template-columns:1fr auto; align-items:center; gap:10px; padding:6px 4px; border-bottom:1px solid #2a2448; }
+.bindrow .label{ font-size:12.5px; color:#e7ddf6; }
+.bind-btn{ font-family:'Press Start 2P',monospace; font-size:8px; min-width:96px; padding:8px 10px; background:#2a2250; color:var(--bone); border:2px solid #453a7d; cursor:pointer; text-align:center; }
+.bind-btn:hover{ filter:brightness(1.2); }
+.bind-btn.capturing{ background:var(--gold); color:#221500; border-color:#8a6410; animation:bindpulse .8s steps(2) infinite; }
+@keyframes bindpulse{ 50%{ opacity:.55; } }
+.reduced-flashing .bind-btn.capturing{ animation:none; }
+
+.settings-reset{ font-family:'Press Start 2P',monospace; font-size:7.5px; margin-top:12px; padding:9px 12px; background:#3a2250; color:#e7ddf6; border:1px solid #6b3f86; cursor:pointer; }
+.settings-reset:hover{ filter:brightness(1.2); }
+
+/* ---- footer buttons ---- */
+.settings-footer{ display:flex; gap:12px; justify-content:center; padding:14px; border-top:2px solid #322a58; background:#191430; }
+.settings-footer button{ font-family:'Press Start 2P',monospace; font-size:9px; padding:12px 18px; border:none; cursor:pointer; }
+.settings-footer .restore{ background:#3a2250; color:#e7ddf6; box-shadow:0 4px 0 #241238; }
+.settings-footer .cancel{ background:var(--crimson); color:#fff; box-shadow:0 4px 0 #7c1420; }
+.settings-footer .apply{ background:var(--gold); color:#221500; box-shadow:0 4px 0 #8a6410; }
+.settings-footer button:hover{ filter:brightness(1.1); }
+.settings-footer button:active{ transform:translateY(3px); box-shadow:none; }
+.settings-footer button:focus-visible,.settings-reset:focus-visible,.toggle:focus-visible,.stepper button:focus-visible,.bind-btn:focus-visible{ outline:2px solid var(--teal); outline-offset:2px; }
+
+/* ---- conflict / warning dialog ---- */
+#settingsDialog{ position:fixed; inset:0; z-index:1100; display:none; align-items:center; justify-content:center; background:rgba(6,4,14,.7); }
+#settingsDialog.show{ display:flex; }
+.settings-dialog-box{ width:420px; max-width:92vw; background:var(--panel); border:3px solid var(--crimson); padding:20px; text-align:center; box-shadow:0 14px 44px rgba(0,0,0,.7); }
+.settings-dialog-box p{ font-size:13px; color:#e7ddf6; line-height:1.6; margin-bottom:16px; }
+.settings-dialog-box .row{ display:flex; gap:12px; justify-content:center; }
+.settings-dialog-box button{ font-family:'Press Start 2P',monospace; font-size:8px; padding:10px 16px; border:none; cursor:pointer; }
+.settings-dialog-box .ok{ background:var(--gold); color:#221500; box-shadow:0 4px 0 #8a6410; }
+.settings-dialog-box .no{ background:#3a2250; color:#e7ddf6; box-shadow:0 4px 0 #241238; }
+
+/* ---- practice panel (shown only when Practice difficulty is selected) ---- */
+.practice-note{ font-size:11px; color:#9d92c2; margin:2px 0 12px; }
+
+/* ---- reduced flashing / reduce motion: hold blinking HTML elements steady ---- */
+body.reduced-flashing .blink{ animation:none !important; opacity:1 !important; }
+
+/* ---- large menu text (accessibility) — scales HTML UI, not the canvas HUD ---- */
+body.large-menu-text{ --menu-text-scale:1.2; }
+body.large-menu-text #settingsOverlay,
+body.large-menu-text .bio,
+body.large-menu-text .opt,
+body.large-menu-text #title .lore,
+body.large-menu-text .ctrlHelp,
+body.large-menu-text #postFight p{ font-size:calc(1em * var(--menu-text-scale, 1)); }
+body.large-menu-text button.big{ font-size:calc(14px * var(--menu-text-scale,1)); }
+body.large-menu-text #pauseMenu button,
+body.large-menu-text #postFight button{ font-size:calc(10px * var(--menu-text-scale,1)); }
+
+/* ---- fullscreen: center the game so leftover space letterboxes evenly (no black
+   half at the bottom). The canvas is ~8:3, so on a 16:9 screen it fits the width and
+   the remaining height is split top/bottom. Width is also capped by height so tall/
+   narrow displays don't overflow. Separate blocks per vendor pseudo-class because one
+   unknown selector would invalidate the whole comma list. ---- */
+#app:fullscreen{
+  width:100vw; height:100vh; max-width:100vw;
+  display:flex; align-items:center; justify-content:center; background:var(--night);
+}
+#app:fullscreen .screen.active{ width:min(100vw, calc(92vh * 8 / 3)); max-width:100vw; }
+
+#app:-webkit-full-screen{
+  width:100vw; height:100vh; max-width:100vw;
+  display:flex; align-items:center; justify-content:center; background:var(--night);
+}
+#app:-webkit-full-screen .screen.active{ width:min(100vw, calc(92vh * 8 / 3)); max-width:100vw; }
+
+/* ---- responsive ---- */
+@media (max-width:640px){
+  .settings-body{ flex-direction:column; }
+  .settings-tabs{ flex-direction:row; flex-wrap:wrap; border-right:none; border-bottom:2px solid #322a58; min-width:0; }
+  .settings-tab{ flex:1 1 40%; }
+  .stepper .val{ min-width:64px; }
+  .slider-wrap input[type=range]{ width:96px; }
+}
