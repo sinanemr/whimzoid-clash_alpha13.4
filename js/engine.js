@@ -280,19 +280,8 @@ let plats=[];
 /* Live platform/scaffold list for the current round (read by physics, AI, and collision). */
 function platforms(){return plats;}
 function makePlats(sid){
- /* SCAFFOLD in the cleared bay (world 1266..1524). One continuous structure,
-    not floating slabs: a run of bays sharing uprights, so the standards line
-    up and the decks butt together the way real scaffolding does.
-    Palette is sampled from the painting — weathered galvanised steel taking
-    the sunset, timber boards — no imported colours. GROUND=249. */
- return[
-  /* lower lift — a continuous run of boards, bays butt end to end */
-  {x:1278,y:216,w:74,hp:95, max:95, kind:"rig", bay:0},
-  {x:1352,y:216,w:74,hp:95, max:95, kind:"rig", bay:1},
-  {x:1426,y:216,w:74,hp:95, max:95, kind:"rig", bay:2},
-  /* upper lift — set back one board, as a real lift steps in */
-  {x:1315,y:188,w:74,hp:75, max:75, kind:"rig", top:true, bay:0},
-  {x:1389,y:188,w:74,hp:75, max:75, kind:"rig", top:true, bay:1}];
+ /* Obstacles/scaffolding cleared for now — flat stage; fighters use the ground line. */
+ return[];
 }
 const PLAT_COL={rune:"#8f6cf0",wood:"#5c452c",scaffold:"#b09a6a",panel:"#3fd8c7",pallet:"#8a6a42",jetty:"#c9a077",rig:"#c4926a"};
 function rigSupportCheck(){
@@ -1444,35 +1433,21 @@ function drawBgMotion(t){
 function drawStage(t){
  const cx=Math.round(camX);
  if(STAGE_BG_OK){
-  ctx.drawImage(STAGE_BG,cx,0,W,H, 0,0,W,H);   /* 1:1 slice of the world */
+  /* Scale the WHOLE background image across the world (WORLD_W wide). The camera
+     window (W px starting at world-x cx) samples the proportional slice, so a
+     background of ANY resolution fills the stage instead of zooming into a corner. */
+  const iw=STAGE_BG.naturalWidth||STAGE_BG.width||WORLD_W;
+  const ih=STAGE_BG.naturalHeight||STAGE_BG.height||H;
+  const sx=(cx/WORLD_W)*iw, sw=(W/WORLD_W)*iw;
+  ctx.drawImage(STAGE_BG, sx,0,sw,ih, 0,0,W,H);
  }else{
   bands(["#8a4f8f","#b37ba2","#dda3a8","#e8a08c","#f6c489"],0,164);
   ctx.fillStyle="#c3a37e";ctx.fillRect(0,164,W,H-164);
  }
- if(SETTINGS_bgAnim()){   /* decorative motion — the painting itself stays visible when off */
-  drawBgMotion(t);   /* nudge the painted figures' own pixels so they stir */
-  /* ---- live sunset motion, painted only into sky/water, never on the boat ---- */
-  for(let i=0;i<4;i++){
-   const gx=(t*(9+i*4)+i*137)%(W+40)-20, gy=26+i*9+Math.sin(t*1.6+i)*3;
-   const flap=Math.sin(t*7+i)>0?1:0;
-   ctx.globalAlpha=.5;ctx.fillStyle="#f6e6d8";
-   ctx.fillRect(gx,gy,2,1);ctx.fillRect(gx-2,gy-flap,2,1);ctx.fillRect(gx+2,gy-flap,2,1);}
-  ctx.globalAlpha=1;
-  /* lighthouse lamp breathing (world x~339) */
-  const lampX=339-cx;
-  if(lampX>-20&&lampX<W+20){
-   ctx.globalAlpha=.05+.05*Math.sin(t*2);
-   ctx.fillStyle="#ffd23f";ctx.beginPath();ctx.arc(lampX,96,8,0,7);ctx.fill();
-   ctx.globalAlpha=1;}
-  /* water glitter in front of the ferry (world ~660..900) */
-  for(let i=0;i<12;i++){
-   const wx=670+i*19-cx;
-   if(wx<-4||wx>W+4)continue;
-   const wy=206+((i*3)%5)+Math.sin(t*1.4+i)*0.6;
-   ctx.globalAlpha=.14;ctx.fillStyle=i%2?"#fff3cf":"#ffd98a";
-   ctx.fillRect(Math.round(wx),Math.round(wy),2,1);}
-  ctx.globalAlpha=1;
- }
+ /* NOTE: the old Kabatepe-painting decorations (swaying painted figures, sleeping
+    dog, lighthouse glow, water glitter) were pinned to the PREVIOUS image's exact
+    pixel coordinates, so they are disabled for the new background. Ask to re-add
+    stage-specific atmosphere once the new art is finalized. */
 }
 /* =============== STAGE OBJECT RENDERING =============== */
 /* Draws every live platform (scaffold/crate stack/jetty/etc., styled per `kind`, with damage cracks) and every destructible prop, all in world space. */
@@ -1636,7 +1611,7 @@ function drawStageObjects(t){
  }
  /* Re-stamp the dog over the straddle frame's legs so it reads IN FRONT.
     (The shed sits further back and stays behind, untouched.) */
- if(STAGE_BG_OK)ctx.drawImage(STAGE_BG, DOG.x,DOG.y,DOG.w,DOG.h, DOG.x,DOG.y,DOG.w,DOG.h);
+ /* old-painting sleeping-dog re-stamp disabled for the new background */
  /* destructible props */
  for(const pr of props){
   const px=pr.x,pb=GROUND,pt=GROUND-pr.h,cracked=pr.hp<pr.max*.55;

@@ -18,10 +18,10 @@ const GAME_CONFIG = {
   },
   world: {
     width: 2032,       // WORLD_W — total scrollable stage width
-    ground: 249,       // GROUND  — y of the ground line (logical px)
+    ground: 230,       // GROUND  — y of the ground line (logical px); lower = fighters stand further back/up
     gravity: 1200,     // GRAV    — downward acceleration (px/s^2)
-    leftWall: 652,     // WALL_L  — invisible left bound for fighters
-    rightWall: 1638    // WALL_R  — invisible right bound for fighters
+    leftWall: 20,      // WALL_L  — invisible left bound (widened: near the full stage)
+    rightWall: 2012    // WALL_R  — invisible right bound (widened: near the full stage)
   },
   match: {
     roundTime: 60,     // seconds per round (timer)
@@ -29,7 +29,7 @@ const GAME_CONFIG = {
     maximumEnergy: 100 // ult meter cap (gainMeter clamps to this)
   },
   fighters: {
-    scale: 0.72,       // CH_SCALE — sprite px -> world px
+    scale: 0.78,       // CH_SCALE — sprite px -> world px
     player1Spawn: 900, // SPAWN_1
     player2Spawn: 1180 // SPAWN_2
   },
