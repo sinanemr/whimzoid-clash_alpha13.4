@@ -51,6 +51,13 @@ const ONLINE = {
   lastArrival: 0,
   snapInterval: ONLINE_SNAPSHOT_MS,
 
+  // client-side prediction of THIS player's own fighter (guest only)
+  predictLocal: true,       // dev flag: false = pure snapshot (legacy) behaviour
+  localFighterIndex: 1,     // which fighters[] index this client controls (guest = 1)
+  localActions: {},         // current semantic held actions (for prediction)
+  predPrevActions: {},      // previous frame's actions (jump-press edge detection)
+  lastPredReconcileSeq: -1, // snapshot seq we last gross-error-corrected against
+
   // host snapshot pacing + diagnostics
   lastSnapshotSent: 0,
   snapshotSequence: 0,
@@ -102,6 +109,7 @@ function ONLINE_readLocalActions() {
 /* Guest: diff local actions vs last frame, send transitions; heartbeat periodically. */
 function ONLINE_pollGuestInput(nowMs) {
   const cur = ONLINE_readLocalActions();
+  ONLINE.localActions = cur;          // used by client-side movement prediction
   const prev = ONLINE.localPrevActions;
   for (const a of ONLINE_ACTIONS) {
     if (cur[a] !== !!prev[a]) {
@@ -235,9 +243,14 @@ function ONLINE_hostMaybeSnapshot(nowMs) {
 /* =====================================================================
  * GUEST: apply snapshots + interpolate
  * ===================================================================== */
-function applyOnlineFighterFields(f, o) {
+// Movement/pose fields the guest PREDICTS for its own fighter (so they aren't
+// overwritten by the delayed authoritative snapshot while the player is free-moving).
+const ONLINE_PRED_FIELDS = new Set(["x", "y", "vx", "vy", "facing", "state", "t", "onGround", "jumps", "blocking", "crouching"]);
+
+function applyOnlineFighterFields(f, o, skip) {
   for (const k of Object.keys(o)) {
     if (k === "cid" || k === "seizedByIdx") continue;
+    if (skip && skip.has(k)) continue;          // predicted fields: keep local value
     f[k] = o[k];
   }
   f.seizedBy = (o.seizedByIdx >= 0 && fighters[o.seizedByIdx]) ? fighters[o.seizedByIdx] : null;
@@ -274,8 +287,56 @@ function ONLINE_receiveSnapshot(snap) {
 
 const lerp = (a, b, t) => a + (b - a) * t;
 
-/* Guest per-frame: apply discrete state from the target snapshot, interpolate
-   continuous positions between prev and target. */
+/* Is this client's own fighter currently free to move under local control (so we may
+   predict it), or is it host-controlled — attacking, stunned, grabbed, flying, dead,
+   between rounds — and must follow the authoritative snapshot instead? */
+function ONLINE_ownFree(to) {
+  return !!to.alive && !roundOver
+    && (to.stun || 0) <= 0 && (to.frozen || 0) <= 0
+    && to.state !== "attack" && to.state !== "special"
+    && !(to.seizedByIdx >= 0) && !to.flying;
+}
+
+/* Advance the guest's own fighter one frame from LOCAL input, mirroring the engine's
+   movement math (readInput/updateFighter) so it stays close to the host's result.
+   Movement/pose only — damage, hits, cooldowns and status remain host-authoritative. */
+function ONLINE_predictLocalMovement(f, dt) {
+  const a = ONLINE.localActions || {};
+  const p = ONLINE.predPrevActions || {};
+  const jumpPressed = !!a.jump && !p.jump;
+  let mv = (a.left ? -1 : 0) + (a.right ? 1 : 0);
+  if (f.confuse > 0) mv = -mv;
+  const blocking = !!a.block && f.onGround;
+  const crouching = !!a.crouch && f.onGround && !blocking;
+  f.blocking = blocking;
+  f.crouching = crouching;
+  if (blocking || crouching) {
+    f.vx = 0;
+    if (f.onGround) f.state = "idle";
+  } else {
+    f.vx = mv * f.d.speed * (f.spdBuff > 0 ? 1.6 : 1) * (f.slowT > 0 ? (1 - (f.slowAmt || 0)) : 1) * (f.frenzy > 0 ? 1.1 : 1);
+    if (mv !== 0) f.facing = mv > 0 ? 1 : -1;
+    const dbl = (f.d.id === "necaati" || f.d.id === "satori" || f.d.id === "agron");
+    if (jumpPressed && f.onGround) { f.vy = -f.d.jump; f.onGround = false; f.jumps = 1; }
+    else if (jumpPressed && dbl && f.jumps < 2) { f.vy = -f.d.jump * 0.85; f.jumps = 2; }
+  }
+  // integrate — matches engine: horizontal always, gravity only while airborne
+  f.x += f.vx * dt;
+  if (!f.onGround) {
+    f.vy += GRAV * dt; f.y += f.vy * dt;
+    if (f.y >= GROUND) { f.y = GROUND; f.vy = 0; f.onGround = true; f.jumps = 0; }
+  }
+  if (f.x < WALL_L) f.x = WALL_L;
+  if (f.x > WALL_R) f.x = WALL_R;
+  // pose
+  if (f.onGround) { if (!blocking && !crouching) f.state = (mv !== 0) ? "walk" : "idle"; }
+  else f.state = "jump";
+  f.t = (f.t || 0) + dt;
+  ONLINE.predPrevActions = Object.assign({}, a);
+}
+
+/* Guest per-frame: apply discrete state from the target snapshot; interpolate the
+   opponent between snapshots; PREDICT this player's own fighter for instant control. */
 function ONLINE_guestTick(dt, nowMs) {
   ONLINE_pollGuestInput(nowMs);
   const tgt = ONLINE.targetSnap;
@@ -292,13 +353,31 @@ function ONLINE_guestTick(dt, nowMs) {
   shake = tgt.shake;
   timer = tgt.timer === "inf" ? Infinity : tgt.timer;
 
-  // fighters: apply all fields from target, then interpolate x/y from prev->target
+  // fighters
+  const localIdx = (ONLINE.localFighterIndex != null) ? ONLINE.localFighterIndex : 1;
   for (let i = 0; i < fighters.length && i < tgt.fighters.length; i++) {
     const f = fighters[i], to = tgt.fighters[i];
-    applyOnlineFighterFields(f, to);
-    if (prev && prev.fighters[i]) {
-      f.x = lerp(prev.fighters[i].x, to.x, t);
-      f.y = lerp(prev.fighters[i].y, to.y, t);
+    if (ONLINE.predictLocal && i === localIdx && ONLINE_ownFree(to)) {
+      // OWN fighter, free to move: authoritative for everything EXCEPT movement/pose,
+      // which we predict locally so it responds instantly.
+      applyOnlineFighterFields(f, to, ONLINE_PRED_FIELDS);
+      // Once per fresh snapshot, snap on a GROSS error (registers hits, knockback,
+      // wall stops, fighter-vs-fighter collisions). Small RTT lead is left alone so
+      // it doesn't rubber-band during normal movement.
+      if (tgt.seq !== ONLINE.lastPredReconcileSeq) {
+        ONLINE.lastPredReconcileSeq = tgt.seq;
+        if (Math.abs(f.x - to.x) > 70 || Math.abs(f.y - to.y) > 70) {
+          f.x = to.x; f.y = to.y; f.vx = to.vx; f.vy = to.vy; f.onGround = to.onGround; f.jumps = to.jumps;
+        }
+      }
+      ONLINE_predictLocalMovement(f, dt);
+    } else {
+      // opponent, or own-but-host-controlled: follow authoritative + interpolate
+      applyOnlineFighterFields(f, to);
+      if (prev && prev.fighters[i]) {
+        f.x = lerp(prev.fighters[i].x, to.x, t);
+        f.y = lerp(prev.fighters[i].y, to.y, t);
+      }
     }
   }
 
@@ -341,10 +420,12 @@ function ONLINE_beginMatch(hostChar, guestChar, rules, matchId) {
   matchWinsRequired = rules.roundsToWin;
   ONLINE_clearRemoteInput();
   ONLINE.localPrevActions = {};
+  ONLINE.localActions = {}; ONLINE.predPrevActions = {}; ONLINE.lastPredReconcileSeq = -1;
   ONLINE.prevSnap = null; ONLINE.targetSnap = null;
 
   if (ONLINE.role === "host") {
     ONLINE.mode = "match-host";
+    ONLINE.localFighterIndex = 0;   // host runs the full sim; no prediction needed
     fighters = [new Fighter(d1, SPAWN_1, 1, "p1"), new Fighter(d2, SPAWN_2, -1, "remote")];
     camX = camClamp((SPAWN_1 + SPAWN_2) / 2 - W / 2);
     roundNum = 1; running = true; paused = false;
@@ -353,7 +434,8 @@ function ONLINE_beginMatch(hostChar, guestChar, rules, matchId) {
     lastT = performance.now(); requestAnimationFrame(loop);
   } else {
     ONLINE.mode = "match-guest";
-    // Guest renders both fighters; state is overwritten by snapshots each frame.
+    ONLINE.localFighterIndex = 1;   // the guest controls (and predicts) fighters[1]
+    // Guest renders both fighters; the opponent from snapshots, its own via prediction.
     fighters = [new Fighter(d1, SPAWN_1, 1, "p1"), new Fighter(d2, SPAWN_2, -1, "remote")];
     projectiles = []; particles = []; floaters = []; rings = []; codexes = []; plats = []; props = [];
     camX = camClamp((SPAWN_1 + SPAWN_2) / 2 - W / 2);

@@ -20,3 +20,8 @@ src-tauri/icons/*.icns
 
 # stray nested repo (was accidentally published as sinanemr/Game)
 /Game/
+
+# temp build/test artifacts
+/_icon_src.png
+/build-log.txt
+/_wstest.js

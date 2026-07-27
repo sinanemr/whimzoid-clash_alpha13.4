@@ -21,7 +21,7 @@
 const NETWORK_CONFIG = {
   // Set this to your deployed server for the installed desktop build.
   // Accepts "wss://host" or "wss://host/ws" (the /ws path is added if missing).
-  serverUrl: "wss://REPLACE_WITH_PRODUCTION_SERVER",
+  serverUrl: "wss://whimzoid-clash-alpha13-4.onrender.com/ws",
   protocolVersion: 1,          // bumped only on a breaking wire-protocol change
   connectionTimeoutMs: 10000,  // how long to wait for connect + version handshake
   reconnectAttempts: 3         // connect retries before reporting failure
