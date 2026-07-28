@@ -46,6 +46,7 @@ const WALL_L=CFG.world.leftWall, WALL_R=CFG.world.rightWall;
    Used by BOTH the first spawn and every round reset. ---------------- */
 const SPAWN_1=CFG.fighters.player1Spawn, SPAWN_2=CFG.fighters.player2Spawn;
 let camX=(WORLD_W-W)/2;      /* left edge of the viewport, in world px */
+let camScale=1;              /* camera zoom: 1 = normal; <1 = pulled back when fighters are far apart */
 const camClamp=v=>Math.max(0,Math.min(WORLD_W-W,v));
 const S=v=>v*CH_SCALE;                       /* sprite px -> world px */
 const MZX=(f,ox)=>f.x+f.facing*S(ox);        /* muzzle X from sprite offset */
@@ -761,6 +762,7 @@ function tryAttack(f){
   if(Math.abs(dx)<S(44)&&dx*f.facing>-10&&Math.abs(foe.hurtY-f.centerY)<S(40)){
    foe.takeDamage(f.d.power,kb,f.facing,{melee:true,noPop:necmi3});   /* 3rd hit: pure horizontal push, no launch */
    addChi(f,5);
+   if(typeof dogBuffOnHit==="function")dogBuffOnHit(f,foe);   /* dog-kill buff: bonus poison on basic hits */
    if(necmi3){shake=Math.max(shake,.3);ringFx(foe.x,foe.centerY,"#e8b52e",34);
     foe.stun=Math.max(foe.stun,0.45);           /* brief hitstun so the knockback reads as a stagger */
     for(let i=0;i<10;i++)particles.push({x:foe.x,y:foe.centerY,vx:f.facing*rand(120,300),vy:rand(-120,40),r:rand(1.5,3),col:["#f2c230","#e8b52e","#d99a1e"][i%3],t:0,life:rand(.3,.55),dough:true});}
@@ -1326,10 +1328,12 @@ function updateFx(dt){
 function startRound(){
  onlineRoundId++;   /* bump the online round epoch so stale delayed callbacks are ignored */
  projectiles=[];particles=[];floaters=[];rings=[];codexes=[];
+ if(typeof resetDog==="function")resetDog();   /* clear the roaming dog + kill-buffs each round */
+ if(typeof resetToilet==="function")resetToilet();   /* reset the toilet event each round */
  props=makeProps(stageId);
  plats=makePlats(stageId);
  fighters[0].resetRound(SPAWN_1,1);fighters[1].resetRound(SPAWN_2,-1);
- camX=camClamp((SPAWN_1+SPAWN_2)/2-W/2);   /* recentre the camera each round */
+ camX=camClamp((SPAWN_1+SPAWN_2)/2-W/2);camScale=1;   /* recentre + reset zoom each round */
  timer=matchRoundTime;roundOver=false;paused=false;
  document.getElementById("pauseMenu").classList.remove("show");
  announce("ROUND "+roundNum,1000);
@@ -1431,18 +1435,20 @@ function drawBgMotion(t){
 
 /* Draws the full-screen stage backdrop for this frame: the background painting (or a gradient fallback), the ambient background-life motion, and small atmosphere details (gulls, lighthouse glow, water glitter). */
 function drawStage(t){
- const cx=Math.round(camX);
  if(STAGE_BG_OK){
-  /* Scale the WHOLE background image across the world (WORLD_W wide). The camera
-     window (W px starting at world-x cx) samples the proportional slice, so a
-     background of ANY resolution fills the stage instead of zooming into a corner. */
+  /* Backdrop drawn in WORLD space so it scales uniformly with the fighters under the
+     camera zoom — no stretch, and no size change relative to the fighters. The painting
+     maps across the whole world (0..WORLD_W wide, 0..H tall); its top/bottom edge rows
+     are extended to fill the extra sky/ground revealed when the camera pulls back. */
   const iw=STAGE_BG.naturalWidth||STAGE_BG.width||WORLD_W;
   const ih=STAGE_BG.naturalHeight||STAGE_BG.height||H;
-  const sx=(cx/WORLD_W)*iw, sw=(W/WORLD_W)*iw;
-  ctx.drawImage(STAGE_BG, sx,0,sw,ih, 0,0,W,H);
+  const EXT=900;
+  ctx.drawImage(STAGE_BG, 0,0,iw,2, 0,-EXT, WORLD_W, EXT);        /* sky, extended upward */
+  ctx.drawImage(STAGE_BG, 0,ih-2,iw,2, 0,H, WORLD_W, EXT);        /* ground, extended downward */
+  ctx.drawImage(STAGE_BG, 0,0,iw,ih, 0,0, WORLD_W, H);           /* the painting itself */
  }else{
-  bands(["#8a4f8f","#b37ba2","#dda3a8","#e8a08c","#f6c489"],0,164);
-  ctx.fillStyle="#c3a37e";ctx.fillRect(0,164,W,H-164);
+  ctx.fillStyle="#b37ba2";ctx.fillRect(-400,-900,WORLD_W+800,900+H);
+  ctx.fillStyle="#c3a37e";ctx.fillRect(-400,164,WORLD_W+800,H-164+900);
  }
  /* NOTE: the old Kabatepe-painting decorations (swaying painted figures, sleeping
     dog, lighthouse glow, water glitter) were pinned to the PREVIOUS image's exact
@@ -2397,12 +2403,19 @@ function updateSimulation(dt){
   if(a.state==="idle"&&a.alive)a.facing=a.x<b.x?1:-1;
   if(b.state==="idle"&&b.alive)b.facing=b.x<a.x?1:-1;}
  updateProjectiles(dt);updateFx(dt);
- /* ---- camera: follow the pair, ease toward their midpoint ---- */
+ if(typeof updateDog==="function")updateDog(dt);   /* roaming dog hazard (js/dog.js) */
+ if(typeof updateToilet==="function")updateToilet(dt);   /* right-side toilet event (js/toilet.js) */
+ /* ---- camera: follow the pair; slowly pull back (zoom out) when they're far apart ---- */
  {const[a,b]=fighters;
-  const mid=(a.x+b.x)/2;
-  const want=camClamp(mid-W/2);
+  const gap=Math.abs(a.x-b.x), margin=140;
+  let tz=W/(gap+margin*2);                                   /* zoom needed to fit both fighters + margins */
+  tz=Math.max(W/WORLD_W,Math.min(1,tz));                     /* never zoom past showing the whole stage */
+  camScale+=(tz-camScale)*Math.min(1,dt*2.5);               /* ease the zoom slowly */
+  const camW=W/camScale;                                    /* visible world width */
+  const mid=(a.x+b.x)/2, hi=Math.max(0,WORLD_W-camW);
+  const want=Math.max(0,Math.min(hi,mid-camW/2));
   camX+=(want-camX)*Math.min(1,dt*CFG.camera.followSpeed);
-  camX=camClamp(camX);}
+  camX=Math.max(0,Math.min(hi,camX));}
 }
 /* Draws the current game state (stage, fighters, projectiles, effects, HUD).
    Pure render — reads state without advancing it, so both host and guest use it. */
@@ -2411,11 +2424,13 @@ function renderGame(){
  ctx.scale(RENDER_SCALE,RENDER_SCALE);      /* map world px -> supersampled device px */
  const shk=shake*SETTINGS_shakeScale();
  if(shk>0)ctx.translate(rand(-3,3)*shk*3,rand(-2,2)*shk*3);
- drawStage(tGlobal);                       /* backdrop: handles its own parallax */
  ctx.save();
- ctx.translate(-Math.round(camX),0);       /* everything below lives in WORLD space */
+ ctx.translate(0,GROUND);ctx.scale(camScale,camScale);ctx.translate(-camX,-GROUND);   /* WORLD space: uniform zoom anchored at the ground line, then pan */
+ drawStage(tGlobal);                       /* backdrop now scales WITH the fighters (one uniform zoom) */
  drawStageObjects(tGlobal);
  fighters.slice().sort((x,y)=>(x.alive?0:-1)-(y.alive?0:-1)).forEach(f=>drawFighter(f,tGlobal));
+ if(typeof drawDog==="function")drawDog();          /* roaming dog hazard (js/dog.js) */
+ if(typeof drawToilet==="function")drawToilet();    /* toilet + caretaker (js/toilet.js) */
  drawProjectiles();drawCodexes(tGlobal);drawFx();
  ctx.restore();
  drawHUD();                                /* HUD stays screen-fixed */

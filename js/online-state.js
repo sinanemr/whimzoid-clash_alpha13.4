@@ -57,6 +57,7 @@ const ONLINE = {
   localActions: {},         // current semantic held actions (for prediction)
   predPrevActions: {},      // previous frame's actions (jump-press edge detection)
   lastPredReconcileSeq: -1, // snapshot seq we last gross-error-corrected against
+  predAttackT: 0,           // seconds left on a locally-predicted basic-attack animation
 
   // host snapshot pacing + diagnostics
   lastSnapshotSent: 0,
@@ -216,8 +217,11 @@ function serializeOnlineGameState() {
     timer: Number.isFinite(timer) ? timer : "inf",
     stageId: stageId,
     camX: camX,
+    camScale: camScale,
     tGlobal: tGlobal,
     shake: shake,
+    dog: (typeof dogSerialize === "function") ? dogSerialize() : null,
+    toilet: (typeof toiletSerialize === "function") ? toiletSerialize() : null,
     fighters: fighters.map(serializeOnlineFighter),
     projectiles: projectiles.map(serializeOnlineProjectile),
     plats: serializePlainList(plats),
@@ -303,6 +307,21 @@ function ONLINE_ownFree(to) {
 function ONLINE_predictLocalMovement(f, dt) {
   const a = ONLINE.localActions || {};
   const p = ONLINE.predPrevActions || {};
+  // --- predicted basic-attack animation: show the swing instantly. The actual hit,
+  //     damage and knockback stay host-authoritative and arrive via snapshot. ---
+  if (ONLINE.predAttackT > 0) {
+    ONLINE.predAttackT -= dt;
+    f.state = "attack"; f.vx = 0; f.t = (f.t || 0) + dt;
+    if (!f.onGround) { f.vy += GRAV * dt; f.y += f.vy * dt; if (f.y >= GROUND) { f.y = GROUND; f.vy = 0; f.onGround = true; f.jumps = 0; } }
+    ONLINE.predPrevActions = Object.assign({}, a);
+    return;
+  }
+  if (!!a.attack && !p.attack && !f.disarm && f.state !== "attack" && f.state !== "special") {
+    ONLINE.predAttackT = 0.28;   // brief anim window; host's real attack takes over when its snapshot arrives
+    f.state = "attack"; f.vx = 0; f.t = 0;
+    ONLINE.predPrevActions = Object.assign({}, a);
+    return;
+  }
   const jumpPressed = !!a.jump && !p.jump;
   let mv = (a.left ? -1 : 0) + (a.right ? 1 : 0);
   if (f.confuse > 0) mv = -mv;
@@ -328,6 +347,10 @@ function ONLINE_predictLocalMovement(f, dt) {
   }
   if (f.x < WALL_L) f.x = WALL_L;
   if (f.x > WALL_R) f.x = WALL_R;
+  if (typeof TOILET_WALL !== "undefined") {   // right-side toilet wall (shifts left once the door opens)
+    const tw = (typeof toilet !== "undefined" && toilet.open && typeof TOILET_WALL_OPEN !== "undefined") ? TOILET_WALL_OPEN : TOILET_WALL;
+    if (f.x > tw) f.x = tw;
+  }
   // pose
   if (f.onGround) { if (!blocking && !crouching) f.state = (mv !== 0) ? "walk" : "idle"; }
   else f.state = "jump";
@@ -352,6 +375,8 @@ function ONLINE_guestTick(dt, nowMs) {
   tGlobal = tgt.tGlobal;
   shake = tgt.shake;
   timer = tgt.timer === "inf" ? Infinity : tgt.timer;
+  if (typeof dogApply === "function") dogApply(tgt.dog);   // roaming dog (host-authoritative)
+  if (typeof toiletApply === "function") toiletApply(tgt.toilet);   // toilet event (host-authoritative)
 
   // fighters
   const localIdx = (ONLINE.localFighterIndex != null) ? ONLINE.localFighterIndex : 1;
@@ -373,6 +398,7 @@ function ONLINE_guestTick(dt, nowMs) {
       ONLINE_predictLocalMovement(f, dt);
     } else {
       // opponent, or own-but-host-controlled: follow authoritative + interpolate
+      if (i === localIdx) ONLINE.predAttackT = 0;   // authoritative state supersedes a predicted attack
       applyOnlineFighterFields(f, to);
       if (prev && prev.fighters[i]) {
         f.x = lerp(prev.fighters[i].x, to.x, t);
@@ -382,7 +408,8 @@ function ONLINE_guestTick(dt, nowMs) {
   }
 
   // camera
-  if (prev) camX = camClamp(lerp(prev.camX, tgt.camX, t)); else camX = camClamp(tgt.camX);
+  camScale = (tgt.camScale != null) ? tgt.camScale : 1;   // zoom is host-authoritative
+  if (prev) camX = lerp(prev.camX, tgt.camX, t); else camX = tgt.camX;   // host already clamped for the zoom
 
   // projectiles: rebuild from target; interpolate by index when counts match
   projectiles = rebuildFromPlainList(tgt.projectiles);
@@ -420,7 +447,7 @@ function ONLINE_beginMatch(hostChar, guestChar, rules, matchId) {
   matchWinsRequired = rules.roundsToWin;
   ONLINE_clearRemoteInput();
   ONLINE.localPrevActions = {};
-  ONLINE.localActions = {}; ONLINE.predPrevActions = {}; ONLINE.lastPredReconcileSeq = -1;
+  ONLINE.localActions = {}; ONLINE.predPrevActions = {}; ONLINE.lastPredReconcileSeq = -1; ONLINE.predAttackT = 0;
   ONLINE.prevSnap = null; ONLINE.targetSnap = null;
 
   if (ONLINE.role === "host") {
