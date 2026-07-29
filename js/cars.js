@@ -94,7 +94,7 @@ CARS[0].x += 16; CARS[0].y += 12; CARS[0].s *= 1.06;
  * by a burning wreck keeps catching BURN (a smaller radius than the blast). */
 const CARS_HIT_MAX = 3;       // hits to detonate
 const CARS_HIT_CD = 0.35;     // per-fighter hit throttle (one swing = one hit)
-const BOOM_DMG = 22, BOOM_KB = 480, BOOM_RANGE = 180;    // explosion damage / knockback / radius
+const BOOM_DMG = 40, BOOM_KB = 480, BOOM_RANGE = 180;    // explosion damage / knockback / radius
 const BOOM_BURN_DPS = 10, BOOM_BURN_SEC = 4;             // burn applied by the blast
 const FIRE_RANGE = 65, FIRE_BURN_DPS = 8, FIRE_BURN_SEC = 2;   // lingering wreck fire (smaller than the blast)
 const BOOM_DUR = 0.62;        // seconds the animated fireball plays before settling into steady fire

@@ -15,7 +15,7 @@
  */
 "use strict";
 
-const DOG_SPAWN_INTERVAL = 5;   // seconds between dog appearances
+const DOG_SPAWN_INTERVAL = 20;   // seconds between dog appearances
 const DOG_MAXHP = 70;            // basic-attack hits to kill (power ~8-14 => ~5-9 hits)
 const DOG_SPEED = 130;           // world px/s chase speed
 const DOG_BITE_RANGE = 46;       // sprite-px; scaled by S()
