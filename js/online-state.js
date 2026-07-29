@@ -222,6 +222,7 @@ function serializeOnlineGameState() {
     shake: shake,
     dog: (typeof dogSerialize === "function") ? dogSerialize() : null,
     toilet: (typeof toiletSerialize === "function") ? toiletSerialize() : null,
+    cars: (typeof carsSerialize === "function") ? carsSerialize() : null,
     fighters: fighters.map(serializeOnlineFighter),
     projectiles: projectiles.map(serializeOnlineProjectile),
     plats: serializePlainList(plats),
@@ -347,6 +348,7 @@ function ONLINE_predictLocalMovement(f, dt) {
   }
   if (f.x < WALL_L) f.x = WALL_L;
   if (f.x > WALL_R) f.x = WALL_R;
+  if (typeof CARS_WALL_X !== "undefined" && f.x < CARS_WALL_X) f.x = CARS_WALL_X;   // front cars = left map limit
   if (typeof TOILET_WALL !== "undefined") {   // right-side toilet wall (shifts left once the door opens)
     const tw = (typeof toilet !== "undefined" && toilet.open && typeof TOILET_WALL_OPEN !== "undefined") ? TOILET_WALL_OPEN : TOILET_WALL;
     if (f.x > tw) f.x = tw;
@@ -377,6 +379,7 @@ function ONLINE_guestTick(dt, nowMs) {
   timer = tgt.timer === "inf" ? Infinity : tgt.timer;
   if (typeof dogApply === "function") dogApply(tgt.dog);   // roaming dog (host-authoritative)
   if (typeof toiletApply === "function") toiletApply(tgt.toilet);   // toilet event (host-authoritative)
+  if (typeof carsApply === "function") carsApply(tgt.cars);   // car explosion event (host-authoritative)
 
   // fighters
   const localIdx = (ONLINE.localFighterIndex != null) ? ONLINE.localFighterIndex : 1;

@@ -1119,6 +1119,7 @@ function updateFighter(f,dt){
   for(const pl of platforms())if(Math.abs(f.y-pl.y)<1&&f.x>pl.x-6&&f.x<pl.x+pl.w+6){sup=true;break;}
   if(!sup)f.onGround=false;}
  f.x=Math.max(WALL_L,Math.min(WALL_R,f.x));   /* invisible walls */
+ if(typeof CARS_WALL_X!=="undefined"&&f.x<CARS_WALL_X)f.x=CARS_WALL_X;   /* front cars = left map limit */
  if(f.state==="walk")f.walkPhase+=Math.abs(f.vx)*dt*.03*(f.d.id==="haydar"?.55:(f.d.id==="putuk"?1.2:1));/* stride cadence: haydar .55; putuk 1.2 (compensates his higher move-speed so the run animation keeps the same rate) */
 }
 const SOLID_GAP=()=>S(26);   /* minimum center-to-center distance while both are grounded */
@@ -1134,6 +1135,7 @@ function resolveFighterCollision(){
   a.x-=dir*push;b.x+=dir*push;
   a.x=Math.max(WALL_L,Math.min(WALL_R,a.x));
   b.x=Math.max(WALL_L,Math.min(WALL_R,b.x));
+  if(typeof CARS_WALL_X!=="undefined"){if(a.x<CARS_WALL_X)a.x=CARS_WALL_X;if(b.x<CARS_WALL_X)b.x=CARS_WALL_X;}
  }
 }
 /* Applies fall damage and a stun if a fighter lands hard enough (impact speed above a threshold). */
@@ -1330,6 +1332,7 @@ function startRound(){
  projectiles=[];particles=[];floaters=[];rings=[];codexes=[];
  if(typeof resetDog==="function")resetDog();   /* clear the roaming dog + kill-buffs each round */
  if(typeof resetToilet==="function")resetToilet();   /* reset the toilet event each round */
+ if(typeof resetCars==="function")resetCars();   /* reset the car explosion event each round */
  props=makeProps(stageId);
  plats=makePlats(stageId);
  fighters[0].resetRound(SPAWN_1,1);fighters[1].resetRound(SPAWN_2,-1);
@@ -1719,7 +1722,7 @@ function drawFighter(f,t){
  ctx.scale(CH_SCALE,CH_SCALE);   /* <-- everything below is authored in sprite px */
  const imgSet=IMG_SPRITES[f.d.id];
  if(EXTRAS_BEHIND[f.d.id]&&f.alive){ctx.save();EXTRAS_BEHIND[f.d.id](ctx,f,t);ctx.restore();}
- if(!f.alive&&!(imgSet&&imgSet.ko)){ctx.rotate(-f.facing*Math.PI/2);ctx.translate(-4,16);}
+ if((!f.alive||f.koPose>0)&&!(imgSet&&imgSet.ko)){ctx.rotate(-f.facing*Math.PI/2);ctx.translate(-4,16);}   /* dead OR knocked-down (no KO art) -> lie on the ground */
  if(f.crouching&&f.alive&&f.onGround&&!(imgSet&&imgSet.crouch))ctx.scale(1.06,.72);
  if(f.morph>0){ctx.fillStyle="rgba(179,107,255,.28)";
   ctx.beginPath();ctx.ellipse(0,-30,20,34,0,0,7);ctx.fill();}
@@ -2405,6 +2408,7 @@ function updateSimulation(dt){
  updateProjectiles(dt);updateFx(dt);
  if(typeof updateDog==="function")updateDog(dt);   /* roaming dog hazard (js/dog.js) */
  if(typeof updateToilet==="function")updateToilet(dt);   /* right-side toilet event (js/toilet.js) */
+ if(typeof updateCars==="function")updateCars(dt);   /* left-side car explosion event (js/cars.js) */
  /* ---- camera: follow the pair; slowly pull back (zoom out) when they're far apart ---- */
  {const[a,b]=fighters;
   const gap=Math.abs(a.x-b.x), margin=140;
@@ -2427,6 +2431,15 @@ function renderGame(){
  ctx.save();
  ctx.translate(0,GROUND);ctx.scale(camScale,camScale);ctx.translate(-camX,-GROUND);   /* WORLD space: uniform zoom anchored at the ground line, then pan */
  drawStage(tGlobal);                       /* backdrop now scales WITH the fighters (one uniform zoom) */
+ if(typeof drawWaves==="function")drawWaves();      /* subtle water shimmer on the sea (js/waves.js) */
+ if(typeof drawBirds==="function")drawBirds();      /* ambient seagulls in the sky (js/birds.js) — behind everything */
+ if(typeof drawShark==="function")drawShark();      /* shark fin in the distant sea (js/shark.js) — behind everything */
+ if(typeof drawCars==="function")drawCars();        /* parked traffic on the left road (js/cars.js) — behind fighters */
+ /* compressor NPC disabled for now — code kept in js/compressor.js; re-enable by uncommenting:
+    if(typeof drawCompressorGuy==="function")drawCompressorGuy(); */
+ if(typeof drawSittingGuy==="function")drawSittingGuy();   /* seated NPC by the sea (js/sitter.js) — behind fighters */
+ if(typeof drawbalikGuy ==="function")drawbalikGuy(); /*balikci
+ if(typeof drawKid==="function")drawKid();   /* snacking kid on top of the boat (js/kid.js) — behind fighters */
  drawStageObjects(tGlobal);
  fighters.slice().sort((x,y)=>(x.alive?0:-1)-(y.alive?0:-1)).forEach(f=>drawFighter(f,tGlobal));
  if(typeof drawDog==="function")drawDog();          /* roaming dog hazard (js/dog.js) */
