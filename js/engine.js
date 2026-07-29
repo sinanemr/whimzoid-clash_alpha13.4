@@ -2438,7 +2438,9 @@ function renderGame(){
  /* compressor NPC disabled for now — code kept in js/compressor.js; re-enable by uncommenting:
     if(typeof drawCompressorGuy==="function")drawCompressorGuy(); */
  if(typeof drawSittingGuy==="function")drawSittingGuy();   /* seated NPC by the sea (js/sitter.js) — behind fighters */
- if(typeof drawbalikGuy ==="function")drawbalikGuy(); /*balikci
+ if(typeof drawbalikGuy ==="function")drawbalikGuy(); /*balikci*/
+ if(typeof drawKids ==="function")drawKids(); /*Talking kids*/
+ if(typeof drawTourist ==="function")drawTourist(); /*Talking Tourist*/
  if(typeof drawKid==="function")drawKid();   /* snacking kid on top of the boat (js/kid.js) — behind fighters */
  drawStageObjects(tGlobal);
  fighters.slice().sort((x,y)=>(x.alive?0:-1)-(y.alive?0:-1)).forEach(f=>drawFighter(f,tGlobal));
