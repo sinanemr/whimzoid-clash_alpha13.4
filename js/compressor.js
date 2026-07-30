@@ -16,9 +16,9 @@ const COMP_IMG = {};
 ["frame1", "frame2"].forEach(k => { const im = new Image(); im.src = COMP_DIR + k + ".png"; COMP_IMG[k] = im; });
 
 // --- placement / size (world coords) — TUNE ---
-const COMP_DRAW = 74;      // draw size of the 1080 canvas (world px); controls overall size (smaller than fighters)
-const COMP_X = 1000;        // world x of the COMPRESSOR base (in front of / just left of the boat)
-const COMP_Y = 215;        // world y of the compressor base (feet line); larger = more forward/down
+const COMP_DRAW = 68;      // draw size of the 1080 canvas (world px); controls overall size (smaller than fighters)
+const COMP_X = 1045;        // world x of the COMPRESSOR base (in front of / just left of the boat)
+const COMP_Y = 213;        // world y of the compressor base (feet line); larger = more forward/down
 const COMP_IMG_W = 1080;   // source PNG size (both frames are 1080x1080)
 // Measured stationary anchor of the compressor base in each frame (image px) so it stays put.
 const COMP_ANCHOR = { frame1: { cx: 858, bottom: 1047 }, frame2: { cx: 855, bottom: 1056 } };

@@ -2435,17 +2435,24 @@ function renderGame(){
  if(typeof drawBirds==="function")drawBirds();      /* ambient seagulls in the sky (js/birds.js) — behind everything */
  if(typeof drawShark==="function")drawShark();      /* shark fin in the distant sea (js/shark.js) — behind everything */
  if(typeof drawCars==="function")drawCars();        /* parked traffic on the left road (js/cars.js) — behind fighters */
- /* compressor NPC disabled for now — code kept in js/compressor.js; re-enable by uncommenting:
-    if(typeof drawCompressorGuy==="function")drawCompressorGuy(); */
+ /* compressor NPC disabled for now — code kept in js/compressor.js; re-enable by uncommenting:*/
+ if(typeof drawCompMech==="function")drawCompMech();
+ if(typeof drawCompressorGuy==="function")drawCompressorGuy(); 
+ if(typeof drawWetsuitsDry==="function")drawWetsuitsDry();
+ if(typeof drawFishnet==="function")drawFishnet();
+ if(typeof drawFishbox==="function")drawFishbox();
+ if(typeof drawFishingRod==="function")drawFishingRod();
  if(typeof drawSittingGuy==="function")drawSittingGuy();   /* seated NPC by the sea (js/sitter.js) — behind fighters */
  if(typeof drawbalikGuy ==="function")drawbalikGuy(); /*balikci*/
  if(typeof drawKids ==="function")drawKids(); /*Talking kids*/
+ if(typeof drawLightHouse==="function")drawLightHouse();
  if(typeof drawTourist ==="function")drawTourist(); /*Talking Tourist*/
  if(typeof drawKid==="function")drawKid();   /* snacking kid on top of the boat (js/kid.js) — behind fighters */
  drawStageObjects(tGlobal);
  fighters.slice().sort((x,y)=>(x.alive?0:-1)-(y.alive?0:-1)).forEach(f=>drawFighter(f,tGlobal));
  if(typeof drawDog==="function")drawDog();          /* roaming dog hazard (js/dog.js) */
  if(typeof drawToilet==="function")drawToilet();    /* toilet + caretaker (js/toilet.js) */
+ if(typeof drawCO2Tank==="function")drawCO2Tank();
  drawProjectiles();drawCodexes(tGlobal);drawFx();
  ctx.restore();
  drawHUD();                                /* HUD stays screen-fixed */
