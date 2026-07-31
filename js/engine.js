@@ -279,10 +279,23 @@ const rand=(a,b)=>a+Math.random()*(b-a);
 /* =============== STAGE OBJECTS =============== */
 let plats=[];
 /* Live platform/scaffold list for the current round (read by physics, AI, and collision). */
-function platforms(){return plats;}
+function platforms(){return plats.concat(propWalkPlatforms(), staticWalkPlatforms()).sort((a,b)=>a.y-b.y);}
 function makePlats(sid){
  /* Obstacles/scaffolding cleared for now — flat stage; fighters use the ground line. */
  return[];
+}
+function propTopY(pr){return pr.topY===undefined?propBaseY(pr)-pr.h+(pr.topOffset||0):pr.topY;}
+function propWalkPlatforms(){
+ const out=[];
+ for(const pr of props){
+  if(pr.kind==="scaffold"&&pr.hp>0)out.push({kind:"scaffoldTop",x:pr.x,y:propTopY(pr),w:pr.w,hidden:true});
+ }
+ return out;
+}
+function staticWalkPlatforms(){
+ const out=[];
+ if(typeof buildLightHousePlatforms==="function")out.push(...buildLightHousePlatforms());
+ return out;
 }
 const PLAT_COL={rune:"#8f6cf0",wood:"#5c452c",scaffold:"#b09a6a",panel:"#3fd8c7",pallet:"#8a6a42",jetty:"#c9a077",rig:"#c4926a"};
 function rigSupportCheck(){
@@ -324,28 +337,31 @@ function damagePlat(pl,dmg,owner){
  }
 }
 function makeProps(sid){
- /* No added props: the dockside gear in view is the artist's own pixels. */
- return[];
+ const out=[];
+ if(typeof buildScaffoldProps==="function")out.push(...buildScaffoldProps());
+ return out;
 }
+function propBaseY(pr){return pr.baseY===undefined?GROUND:pr.baseY;}
 /* Damages a destructible background prop (crate, vase, tank...); on destruction, removes it and grants the attacker ENERGY. */
 function damageProp(pr,dmg,owner){
  if(pr.hp<=0)return;
  pr.hp-=dmg;
- const cx=pr.x+pr.w/2,cy=GROUND-pr.h/2;
- const col=pr.kind==="divetank"?"#f2c230":pr.kind==="compressor"?"#c0392b":pr.kind==="vase"?"#8f6cf0":pr.kind==="slantern"?"#c9c2b2":pr.kind==="sign"?"#3fd8c7":"#5c452c";
+ const pb=propBaseY(pr),cx=pr.x+pr.w/2,cy=pb-pr.h/2;
+ const col=pr.kind==="scaffold"?"#b09a6a":pr.kind==="divetank"?"#f2c230":pr.kind==="compressor"?"#c0392b":pr.kind==="vase"?"#8f6cf0":pr.kind==="slantern"?"#c9c2b2":pr.kind==="sign"?"#3fd8c7":"#5c452c";
  spawnHitFx(cx,cy,col,4);
  if(pr.hp<=0){
   props=props.filter(p=>p!==pr);
   spawnHitFx(cx,cy,col,14);shake=Math.max(shake,.25);
-  if(owner&&owner.alive){owner.gainMeter(8);floaters.push({x:cx,y:GROUND-pr.h-8,txt:"+8 ENERGY",t:0,col:"#f2b632",size:6});}
+  if(pr.kind==="scaffold"){if(typeof scaffoldCollapseFx==="function")scaffoldCollapseFx(pr);if(typeof scaffoldBreakLinked==="function")scaffoldBreakLinked(pr,owner);}
+  if(owner&&owner.alive){owner.gainMeter(8);floaters.push({x:cx,y:pb-pr.h-8,txt:"+8 ENERGY",t:0,col:"#f2b632",size:6});}
  }
 }
 /* Checks a melee/ranged hit's area against nearby props and platforms and damages any that overlap. */
 function hitProps(x,facing,range,dmg,owner,y){
  if(y===undefined)y=GROUND-S(30);
  for(const pr of props.slice()){
-  const cx=pr.x+pr.w/2;
-  if(Math.abs(cx-x)<range&&(cx-x)*facing>-8&&y>GROUND-S(60))damageProp(pr,dmg,owner);
+  const pb=propBaseY(pr),cx=pr.x+pr.w/2;
+  if(Math.abs(cx-x)<range&&(cx-x)*facing>-8&&y>pb-pr.h-12&&y<pb+12)damageProp(pr,dmg,owner);
  }
  for(const pl of plats.slice()){
   if(pl.hp===undefined)continue;
@@ -1200,11 +1216,12 @@ function updateProjectiles(dt){
    particles.push({x:bx,y:by+rand(-2,2),vx:-dir*rand(10,45),vy:-rand(6,26),r:rand(2,4),col:["#787878","#8a8a8a","#9a9a9a"][Math.floor(Math.random()*3)],t:0,life:rand(.3,.6)});}
   if(p.type==="grenade"&&p.y>=GROUND-2){explodeGrenade(p);projectiles.splice(i,1);continue;}
   if(p.y>GROUND+8){spawnHitFx(p.x,GROUND,p.col,3);projectiles.splice(i,1);continue;}
-  /* props block shots */
-  let smashed=false;
-  for(const pr of props.slice()){
-   if(p.x>pr.x-2&&p.x<pr.x+pr.w+2&&p.y>GROUND-pr.h-12){damageProp(pr,p.dmg||20,p.owner);smashed=true;break;}
-  }
+   /* props block shots */
+   let smashed=false;
+   for(const pr of props.slice()){
+    const pb=propBaseY(pr);
+    if(p.x>pr.x-2&&p.x<pr.x+pr.w+2&&p.y>pb-pr.h-12&&p.y<pb+12){damageProp(pr,p.dmg||20,p.owner);smashed=true;break;}
+   }
   if(!smashed)for(const pl of plats.slice()){
    if(pl.hp===undefined)continue;
    if(p.x>pl.x-2&&p.x<pl.x+pl.w+2&&p.y>pl.y-4&&p.y<pl.y+8){damagePlat(pl,p.dmg||20,p.owner);smashed=true;break;}
@@ -1463,6 +1480,7 @@ function drawStage(t){
 function drawStageObjects(t){
  /* platforms, styled per stage or by kind */
  for(const pl of platforms()){
+  if(pl.hidden)continue;
   const dmgd=pl.hp!==undefined&&pl.hp<pl.max;
   if(pl.kind==="rune"){
    ctx.fillStyle="#3a2f7d";ctx.fillRect(pl.x,pl.y,pl.w,7);
@@ -1622,9 +1640,11 @@ function drawStageObjects(t){
     (The shed sits further back and stays behind, untouched.) */
  /* old-painting sleeping-dog re-stamp disabled for the new background */
  /* destructible props */
- for(const pr of props){
-  const px=pr.x,pb=GROUND,pt=GROUND-pr.h,cracked=pr.hp<pr.max*.55;
-  if(pr.kind==="vase"){
+ for(const pr of props.slice().sort((a,b)=>propBaseY(a)-propBaseY(b))){
+  const px=pr.x,pb=propBaseY(pr),pt=pb-pr.h,cracked=pr.hp<pr.max*.55;
+  if(pr.kind==="scaffold"&&typeof drawScaffoldProp==="function"){
+   drawScaffoldProp(pr,t);
+  }else if(pr.kind==="vase"){
    ctx.fillStyle="#4a3d8f";ctx.fillRect(px+3,pt,pr.w-6,4);
    ctx.fillStyle="#5747b0";ctx.fillRect(px,pt+4,pr.w,pr.h-8);
    ctx.fillStyle="#8f6cf0";ctx.fillRect(px+2,pt+7,3,pr.h-14);
@@ -1666,8 +1686,8 @@ function drawStageObjects(t){
   }
   if(cracked){ctx.strokeStyle="rgba(10,8,6,.7)";ctx.lineWidth=1;
    ctx.beginPath();ctx.moveTo(px+3,pt+4);ctx.lineTo(px+pr.w/2,pt+pr.h/2);ctx.lineTo(px+4,pb-4);ctx.stroke();}
-  /* hp pips */
-  if(pr.hp<pr.max){ctx.fillStyle="#000";ctx.fillRect(px,pt-5,pr.w,3);
+  /* hp pips (scaffolds show damage by trembling/shedding instead, so no bar for them) */
+  if(pr.hp<pr.max&&pr.kind!=="scaffold"){ctx.fillStyle="#000";ctx.fillRect(px,pt-5,pr.w,3);
    ctx.fillStyle="#f2b632";ctx.fillRect(px,pt-5,Math.max(1,Math.round(pr.w*pr.hp/pr.max)),3);}
  }
 }
@@ -2448,11 +2468,14 @@ function renderGame(){
  if(typeof drawLightHouse==="function")drawLightHouse();
  if(typeof drawTourist ==="function")drawTourist(); /*Talking Tourist*/
  if(typeof drawKid==="function")drawKid();   /* snacking kid on top of the boat (js/kid.js) — behind fighters */
+ if(typeof drawScaffold==="function")drawScaffold();
  drawStageObjects(tGlobal);
  fighters.slice().sort((x,y)=>(x.alive?0:-1)-(y.alive?0:-1)).forEach(f=>drawFighter(f,tGlobal));
+ if(typeof drawRegulatorGuy==="function")drawRegulatorGuy();   /* diver by the tanks (js/regulator.js) — FOREGROUND, in front of the fighters */
  if(typeof drawDog==="function")drawDog();          /* roaming dog hazard (js/dog.js) */
  if(typeof drawToilet==="function")drawToilet();    /* toilet + caretaker (js/toilet.js) */
  if(typeof drawCO2Tank==="function")drawCO2Tank();
+ if(typeof drawRegulatorGuy==="function")drawRegulatorGuy();   /* diver by the tanks (js/regulator.js) — FOREGROUND, in front of the fighters */
  drawProjectiles();drawCodexes(tGlobal);drawFx();
  ctx.restore();
  drawHUD();                                /* HUD stays screen-fixed */
