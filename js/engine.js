@@ -344,20 +344,38 @@ function makeProps(sid){
  const out=[];
  if(typeof buildScaffoldProps==="function")out.push(...buildScaffoldProps());
  if(typeof buildCarProps==="function")out.push(...buildCarProps());
+ if(typeof buildCO2TankProps==="function")out.push(...buildCO2TankProps());
  return out;
 }
 function propBaseY(pr){return pr.baseY===undefined?GROUND:pr.baseY;}
 /* Damages a destructible background prop (crate, vase, tank...); on destruction, removes it and grants the attacker ENERGY. */
+/* True (and records it) if THIS attack instance has already hit this prop — so a multi-hit swing or
+   skill only counts as ONE hit on any breakable/explosive prop. owner-less damage is never throttled. */
+function attackAlreadyHit(pr,owner){
+ if(!owner)return false;
+ const slot=(typeof fighters!=="undefined"&&owner===fighters[1])?1:0;
+ const seq=owner.atkSeq||0;
+ if(!pr._atkSeq)pr._atkSeq=[-1,-1];
+ if(pr._atkSeq[slot]===seq)return true;
+ pr._atkSeq[slot]=seq;return false;
+}
 function damageProp(pr,dmg,owner){
  if(pr.hp<=0)return;
- pr.hp-=dmg;
+ if(attackAlreadyHit(pr,owner))return;    /* one basic attack / one skill = one hit (multi-hits count once) */
+ pr.hp-=(pr.kind==="co2tank")?1:dmg;       /* co2 tank breaks in a fixed number of HITS, not raw damage */
  const pb=propBaseY(pr),cx=pr.x+pr.w/2,cy=pb-pr.h/2;
- const col=pr.kind==="scaffold"?"#b09a6a":pr.kind==="divetank"?"#f2c230":pr.kind==="compressor"?"#c0392b":pr.kind==="vase"?"#8f6cf0":pr.kind==="slantern"?"#c9c2b2":pr.kind==="sign"?"#3fd8c7":"#5c452c";
+ const col=pr.kind==="scaffold"?"#b09a6a":pr.kind==="co2tank"?"#8fd43a":pr.kind==="divetank"?"#f2c230":pr.kind==="compressor"?"#c0392b":pr.kind==="vase"?"#8f6cf0":pr.kind==="slantern"?"#c9c2b2":pr.kind==="sign"?"#3fd8c7":"#5c452c";
  spawnHitFx(cx,cy,col,4);
  if(pr.hp<=0){
   if(pr.kind==="car"){                     /* car doesn't vanish — it detonates + becomes the wreck (still standable) */
    if(!pr.wrecked){pr.wrecked=true;if(typeof carExplode==="function")carExplode(pr,owner);
     if(owner&&owner.alive){owner.gainMeter(8);floaters.push({x:cx,y:pb-pr.h-8,txt:"+8 ENERGY",t:0,col:"#f2b632",size:6});}}
+   return;
+  }
+  if(pr.kind==="co2tank"){                  /* explodes (smaller than the car) then is gone */
+   if(typeof co2TankExplode==="function")co2TankExplode(pr,owner);
+   props=props.filter(p=>p!==pr);
+   if(owner&&owner.alive){owner.gainMeter(6);floaters.push({x:cx,y:pb-pr.h-8,txt:"+6 ENERGY",t:0,col:"#f2b632",size:6});}
    return;
   }
   props=props.filter(p=>p!==pr);
@@ -1079,6 +1097,10 @@ function updateFighter(f,dt){
  if(f.d.id==="akira"&&f.zen<=0&&tGlobal-f.lastAction>4&&f.chi>0){f.chi=Math.max(0,f.chi-8*dt);}
  if(f.d.id==="haydar"&&f.alive){f._rg=(f._rg||0)+dt;if(f._rg>1){f._rg=0;f.hp=Math.min(f.maxhp,f.hp+4);}}
  f.t+=dt;
+ /* ATTACK-INSTANCE counter: bump once each time the fighter ENTERS an attacking state (basic swing,
+    any skill, or ult). Breakable/explosive props use it so ONE attack = ONE hit even if the move has
+    multiple damage ticks (see damageProp / hitCars / hitToilet). */
+ {const _atkNow=(f.state==="attack"||f.state==="special");if(_atkNow&&!f._wasAtk)f.atkSeq=(f.atkSeq||0)+1;f._wasAtk=_atkNow;}
  if(f.state==="attack"&&f.t>(f.d.id==="agron"&&f.frenzy>0?.27:.3))f.state="idle";
  if(f.state==="special"&&f.t>.45&&!(f.d.id==="notalk"&&f.windmill>0)&&!(f.d.id==="munevver"&&f.skillAT>0)&&!(f.d.id==="necmi"&&(f.skillAT>0||f.skillBT>0))&&!(f.d.id==="haydar"&&(f.skillAT>0||f.skillBT>0||f.ultCharging))&&!(f.d.id==="putuk"&&(f.counterT>0||f._counterHitT>0)))f.state="idle";
  /* RELENTLESS MARCH — uninterruptible advance: catch the foe and DRAG them along */
@@ -1656,6 +1678,8 @@ function drawStageObjects(t){
    drawScaffoldProp(pr,t);
   }else if(pr.kind==="car"&&typeof drawCarProp==="function"){
    drawCarProp(pr,t);
+  }else if(pr.kind==="co2tank"&&typeof drawCO2TankProp==="function"){
+   drawCO2TankProp(pr,t);
   }else if(pr.kind==="vase"){
    ctx.fillStyle="#4a3d8f";ctx.fillRect(px+3,pt,pr.w-6,4);
    ctx.fillStyle="#5747b0";ctx.fillRect(px,pt+4,pr.w,pr.h-8);
@@ -1696,10 +1720,10 @@ function drawStageObjects(t){
    ctx.font="6px 'Press Start 2P'";ctx.textAlign="center";ctx.fillText("Z",px+pr.w/2,pt+13);
    ctx.fillStyle="#8f6cf0";ctx.fillRect(px+4,pb-8,pr.w-8,3);ctx.globalAlpha=1;
   }
-  if(cracked&&pr.kind!=="car"&&pr.kind!=="scaffold"){ctx.strokeStyle="rgba(10,8,6,.7)";ctx.lineWidth=1;  /* procedural crack — only for the simple rectangular props, not image sprites */
+  if(cracked&&pr.kind!=="car"&&pr.kind!=="scaffold"&&pr.kind!=="co2tank"){ctx.strokeStyle="rgba(10,8,6,.7)";ctx.lineWidth=1;  /* procedural crack — only for the simple rectangular props, not image sprites */
    ctx.beginPath();ctx.moveTo(px+3,pt+4);ctx.lineTo(px+pr.w/2,pt+pr.h/2);ctx.lineTo(px+4,pb-4);ctx.stroke();}
   /* hp pips (scaffolds show damage by trembling/shedding instead, so no bar for them) */
-  if(pr.hp<pr.max&&pr.kind!=="scaffold"&&pr.kind!=="car"){ctx.fillStyle="#000";ctx.fillRect(px,pt-5,pr.w,3);
+  if(pr.hp<pr.max&&pr.kind!=="scaffold"&&pr.kind!=="car"&&pr.kind!=="co2tank"){ctx.fillStyle="#000";ctx.fillRect(px,pt-5,pr.w,3);
    ctx.fillStyle="#f2b632";ctx.fillRect(px,pt-5,Math.max(1,Math.round(pr.w*pr.hp/pr.max)),3);}
  }
 }

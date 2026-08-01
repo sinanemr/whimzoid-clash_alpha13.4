@@ -91,10 +91,10 @@ function updateToilet(dt) {
   // hit detection (only until triggered): a fighter attacking into the shack's face
   if (!toilet.open && !nobetci && typeof fighters !== "undefined") {
     for (const f of fighters) {
-      if (f._toiletHitT > 0) f._toiletHitT -= dt;
-      if (f.alive && (f.state === "attack" || f.state === "special") && (f._toiletHitT || 0) <= 0
+      // ONE basic attack / ONE skill = ONE hit (multi-hit moves count once) via the attack-instance id
+      if (f.alive && (f.state === "attack" || f.state === "special") && f._toiletHitSeq !== (f.atkSeq || 0)
           && f.facing > 0 && (TOILET_WALL - f.x) < S(46) + 30 && (TOILET_WALL - f.x) > -20) {
-        hitToilet(f); f._toiletHitT = TOILET_HIT_CD;
+        hitToilet(f); f._toiletHitSeq = (f.atkSeq || 0);
       }
     }
     // damaging projectiles that reach the shack also count as hits

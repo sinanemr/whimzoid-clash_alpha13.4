@@ -309,10 +309,10 @@ function updateCars(dt) {
   // hit detection: a fighter attacking LEFT into the wall / a damaging projectile reaching it
   if (!carFire && !over && typeof fighters !== "undefined") {
     for (const f of fighters) {
-      if (f._carHitT > 0) f._carHitT -= dt;
-      if (f.alive && (f.state === "attack" || f.state === "special") && (f._carHitT || 0) <= 0
+      // ONE basic attack / ONE skill = ONE hit (multi-hit moves count once) via the attack-instance id
+      if (f.alive && (f.state === "attack" || f.state === "special") && f._carHitSeq !== (f.atkSeq || 0)
           && f.facing < 0 && (f.x - CARS_WALL_X) < S(60) && (f.x - CARS_WALL_X) > -20) {
-        hitCars(f); f._carHitT = CARS_HIT_CD;
+        hitCars(f); f._carHitSeq = (f.atkSeq || 0);
       }
     }
     if (typeof projectiles !== "undefined") {
