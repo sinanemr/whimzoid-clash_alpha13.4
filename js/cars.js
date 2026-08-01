@@ -193,11 +193,7 @@ function drawWreckFire(cx, groundY, t, scale, alpha, size) {
     const by = groundY - S(5) - hsh(k + 40) * bodyH;                  // random height, up onto the roof
     drawFlameTuft(bx, by, t, scale, alpha, hsh(k + 70), S(6 + 12 * hsh(k + 90)) * scale);
   }
-  // fire on the GROUND around the car (also randomly placed)
-  for (let k = 0; k < 6; k++) {
-    const bx = cx + (hsh(k + 200) * 2 - 1) * halfW;
-    drawFlameTuft(bx, baseY, t, scale, alpha, hsh(k + 230), S(5 + 9 * hsh(k + 260)) * scale);
-  }
+  // (no fire on the ground — the fire stays ON the car)
   // embers drifting up from random spots
   for (let i = 0; i < 10; i++) {
     const ph = (t * 1.3 + hsh(i + 300)) % 1;
@@ -209,9 +205,9 @@ function drawWreckFire(cx, groundY, t, scale, alpha, size) {
   }
   ctx.globalCompositeOperation = "source-over";
 
-  // glowing coals strewn along the ground under and beside the car
+  // glowing coals — kept ON the car's own footprint (not spread out over the ground)
   for (let i = 0; i < 8; i++) {
-    const bx = cx + (i / 7 - 0.5) * 2 * halfW * 1.15;
+    const bx = cx + (i / 7 - 0.5) * 2 * carHalfW * 0.9;
     const gl = 0.5 + 0.5 * Math.sin(t * 6 + i * 1.7);
     ctx.globalAlpha = alpha * (0.32 + 0.4 * gl);
     ctx.fillStyle = gl > 0.5 ? "#ffb038" : "#e2551a";
@@ -219,14 +215,14 @@ function drawWreckFire(cx, groundY, t, scale, alpha, size) {
   }
   ctx.globalAlpha = 1;
 
-  // smoke rising from random spots on top of the car
-  for (let i = 0; i < 5; i++) {
-    const ph = (t * 0.4 + i * 0.2) % 1;
-    const sx = cx + (hsh(i + 400) * 2 - 1) * carHalfW + Math.sin(t * 1.1 + i * 2) * S(8) * ph;
-    const sy = groundY - bodyH - ph * S(58);
-    ctx.globalAlpha = alpha * 0.2 * (1 - ph);
-    ctx.fillStyle = i % 2 ? "#3a3a3a" : "#565656";
-    ctx.beginPath(); ctx.arc(sx, sy, S(5) + ph * S(11), 0, 7); ctx.fill();
+  // thick BLACK smoke boiling up off the burning wreck (something is clearly on fire)
+  for (let i = 0; i < 9; i++) {
+    const ph = (t * 0.38 + i * 0.19) % 1;
+    const sx = cx + (hsh(i + 400) * 2 - 1) * carHalfW * 0.8 + Math.sin(t * 1.1 + i * 2) * S(10) * ph;
+    const sy = groundY - bodyH - ph * S(86);
+    ctx.globalAlpha = alpha * 0.42 * (1 - ph * 0.85);
+    ctx.fillStyle = ph < 0.45 ? "#171717" : (i % 2 ? "#242424" : "#333333");   // darkest at the base
+    ctx.beginPath(); ctx.arc(sx, sy, S(5) + ph * S(15), 0, 7); ctx.fill();
   }
   ctx.globalAlpha = 1;
   ctx.restore();

@@ -56,9 +56,16 @@ function spawnDog() {
   };
 }
 
-function nearestFighter(x) {
+// a fighter up on a car/crate/platform (or airborne) is out of the ground-level dog's reach
+function dogCanReach(f) { return !!f && f.alive && f.y >= GROUND - S(8); }
+
+function nearestFighter(x, groundedOnly) {
   let best = null, bd = 1e9;
-  for (const f of fighters) { if (!f.alive) continue; const d = Math.abs(f.x - x); if (d < bd) { bd = d; best = f; } }
+  for (const f of fighters) {
+    if (!f.alive) continue;
+    if (groundedOnly && f.y < GROUND - S(8)) continue;   // skip players standing on an obstacle
+    const d = Math.abs(f.x - x); if (d < bd) { bd = d; best = f; }
+  }
   return best;
 }
 
@@ -81,8 +88,10 @@ function updateDog(dt) {
 
   if (dog.state === "dead") { dog.dead += dt; if (dog.dead > 0.6) { dog = null; dogSpawnT = 0; } return; }
 
-  const target = nearestFighter(dog.x);
+  // prefer a reachable (grounded) player; if the nearest one hops onto an obstacle, chase the OTHER
+  const target = nearestFighter(dog.x, true) || nearestFighter(dog.x);
   if (!target) { dog = null; return; }
+  const canReach = dogCanReach(target);
   const dx = target.x - dog.x, adx = Math.abs(dx);
   dog.facing = dx >= 0 ? 1 : -1;
 
@@ -92,7 +101,7 @@ function updateDog(dt) {
     else dog.vx = 0;
     if (!dog.bit && dog.t >= windup) {
       dog.bit = true;
-      if (Math.abs(target.x - dog.x) < S(DOG_BITE_RANGE) + 10 && target.alive) {
+      if (canReach && Math.abs(target.x - dog.x) < S(DOG_BITE_RANGE) + 10 && target.alive) {
         target.takeDamage(DOG_BITE_DMG, 0, dog.facing, { unblockable: true, dot: true, col: "#ff5e6e", fx: "#ff5e6e" });
         target.bleedDps = DOG_BLEED_DPS; target.bleed = Math.max(target.bleed || 0, DOG_BLEED_SEC);
         statusFloat(target, "BLEED", "#ff5e6e");
@@ -112,9 +121,9 @@ function updateDog(dt) {
     dog.vx = dog.retreatDir * DOG_SPEED * 0.85; dog.x += dog.vx * dt;
   } else if (adx > S(DOG_BITE_RANGE) - 4) {      // chase
     dog.state = "run"; dog.vx = dog.facing * DOG_SPEED; dog.x += dog.vx * dt;
-  } else {                                       // in range: bite (if ready) or wait
+  } else {                                       // in range: bite (if ready & reachable) or wait
     dog.vx = 0;
-    if (dog.biteCd <= 0) { dog.runAttack = (dog.state === "run"); dog.state = "attack"; dog.t = 0; dog.bit = false; }
+    if (canReach && dog.biteCd <= 0) { dog.runAttack = (dog.state === "run"); dog.state = "attack"; dog.t = 0; dog.bit = false; }
     else dog.state = "idle";
   }
   dog.x = Math.max(WALL_L - 40, Math.min(WALL_R + 40, dog.x));
@@ -123,7 +132,7 @@ function updateDog(dt) {
   // SOLID BODY — grounded fighters can't walk through the dog; jump to pass over it
   if (dog.state !== "dead") {
     for (const f of fighters) {
-      if (!f.alive || !f.onGround) continue;   // airborne fighters clear the dog
+      if (!f.alive || !f.onGround || f.y < GROUND - S(8)) continue;   // airborne OR on an obstacle: clear the dog
       const d = f.x - dog.x;
       if (Math.abs(d) < DOG_BODY) {
         f.x = dog.x + DOG_BODY * (d >= 0 ? 1 : -1);

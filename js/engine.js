@@ -289,6 +289,10 @@ function propWalkPlatforms(){
  const out=[];
  for(const pr of props){
   if(pr.kind==="scaffold"&&pr.hp>0)out.push({kind:"scaffoldTop",x:pr.x,y:propTopY(pr),w:pr.w,hidden:true});
+  if(pr.kind==="car"){                                                                              /* two levels: roof (upper) + hood (lower step) */
+   out.push({kind:"carTop",x:pr.roofX,y:propTopY(pr),w:pr.roofW,hidden:true});                      /* stand on the ROOF (cabin span, not the hood) */
+   if(pr.hoodY!==undefined)out.push({kind:"carHood",x:pr.hoodX,y:pr.hoodY,w:pr.hoodW,hidden:true}); /* stand on the HOOD (lower front deck) */
+  }
  }
  return out;
 }
@@ -339,6 +343,7 @@ function damagePlat(pl,dmg,owner){
 function makeProps(sid){
  const out=[];
  if(typeof buildScaffoldProps==="function")out.push(...buildScaffoldProps());
+ if(typeof buildCarProps==="function")out.push(...buildCarProps());
  return out;
 }
 function propBaseY(pr){return pr.baseY===undefined?GROUND:pr.baseY;}
@@ -350,6 +355,11 @@ function damageProp(pr,dmg,owner){
  const col=pr.kind==="scaffold"?"#b09a6a":pr.kind==="divetank"?"#f2c230":pr.kind==="compressor"?"#c0392b":pr.kind==="vase"?"#8f6cf0":pr.kind==="slantern"?"#c9c2b2":pr.kind==="sign"?"#3fd8c7":"#5c452c";
  spawnHitFx(cx,cy,col,4);
  if(pr.hp<=0){
+  if(pr.kind==="car"){                     /* car doesn't vanish — it detonates + becomes the wreck (still standable) */
+   if(!pr.wrecked){pr.wrecked=true;if(typeof carExplode==="function")carExplode(pr,owner);
+    if(owner&&owner.alive){owner.gainMeter(8);floaters.push({x:cx,y:pb-pr.h-8,txt:"+8 ENERGY",t:0,col:"#f2b632",size:6});}}
+   return;
+  }
   props=props.filter(p=>p!==pr);
   spawnHitFx(cx,cy,col,14);shake=Math.max(shake,.25);
   if(pr.kind==="scaffold"){if(typeof scaffoldCollapseFx==="function")scaffoldCollapseFx(pr);if(typeof scaffoldBreakLinked==="function")scaffoldBreakLinked(pr,owner);}
@@ -1644,6 +1654,8 @@ function drawStageObjects(t){
   const px=pr.x,pb=propBaseY(pr),pt=pb-pr.h,cracked=pr.hp<pr.max*.55;
   if(pr.kind==="scaffold"&&typeof drawScaffoldProp==="function"){
    drawScaffoldProp(pr,t);
+  }else if(pr.kind==="car"&&typeof drawCarProp==="function"){
+   drawCarProp(pr,t);
   }else if(pr.kind==="vase"){
    ctx.fillStyle="#4a3d8f";ctx.fillRect(px+3,pt,pr.w-6,4);
    ctx.fillStyle="#5747b0";ctx.fillRect(px,pt+4,pr.w,pr.h-8);
@@ -1684,10 +1696,10 @@ function drawStageObjects(t){
    ctx.font="6px 'Press Start 2P'";ctx.textAlign="center";ctx.fillText("Z",px+pr.w/2,pt+13);
    ctx.fillStyle="#8f6cf0";ctx.fillRect(px+4,pb-8,pr.w-8,3);ctx.globalAlpha=1;
   }
-  if(cracked){ctx.strokeStyle="rgba(10,8,6,.7)";ctx.lineWidth=1;
+  if(cracked&&pr.kind!=="car"&&pr.kind!=="scaffold"){ctx.strokeStyle="rgba(10,8,6,.7)";ctx.lineWidth=1;  /* procedural crack — only for the simple rectangular props, not image sprites */
    ctx.beginPath();ctx.moveTo(px+3,pt+4);ctx.lineTo(px+pr.w/2,pt+pr.h/2);ctx.lineTo(px+4,pb-4);ctx.stroke();}
   /* hp pips (scaffolds show damage by trembling/shedding instead, so no bar for them) */
-  if(pr.hp<pr.max&&pr.kind!=="scaffold"){ctx.fillStyle="#000";ctx.fillRect(px,pt-5,pr.w,3);
+  if(pr.hp<pr.max&&pr.kind!=="scaffold"&&pr.kind!=="car"){ctx.fillStyle="#000";ctx.fillRect(px,pt-5,pr.w,3);
    ctx.fillStyle="#f2b632";ctx.fillRect(px,pt-5,Math.max(1,Math.round(pr.w*pr.hp/pr.max)),3);}
  }
 }
@@ -2429,6 +2441,7 @@ function updateSimulation(dt){
  if(typeof updateDog==="function")updateDog(dt);   /* roaming dog hazard (js/dog.js) */
  if(typeof updateToilet==="function")updateToilet(dt);   /* right-side toilet event (js/toilet.js) */
  if(typeof updateCars==="function")updateCars(dt);   /* left-side car explosion event (js/cars.js) */
+ if(typeof updateCarProp==="function")updateCarProp(dt);   /* burning-wreck fire hazard (js/car.js) */
  /* ---- camera: follow the pair; slowly pull back (zoom out) when they're far apart ---- */
  {const[a,b]=fighters;
   const gap=Math.abs(a.x-b.x), margin=140;
@@ -2455,10 +2468,14 @@ function renderGame(){
  if(typeof drawBirds==="function")drawBirds();      /* ambient seagulls in the sky (js/birds.js) — behind everything */
  if(typeof drawShark==="function")drawShark();      /* shark fin in the distant sea (js/shark.js) — behind everything */
  if(typeof drawCars==="function")drawCars();        /* parked traffic on the left road (js/cars.js) — behind fighters */
+ if(typeof drawRope==="function")drawRope();        /* coiled mooring ropes on the pier (js/rope.js) — behind fighters */
+ if(typeof drawPallets==="function")drawPallets();  /* wooden pallets in the otoparks (js/pallet.js) — behind fighters */
  /* compressor NPC disabled for now — code kept in js/compressor.js; re-enable by uncommenting:*/
  if(typeof drawCompMech==="function")drawCompMech();
  if(typeof drawCompressorGuy==="function")drawCompressorGuy(); 
  if(typeof drawWetsuitsDry==="function")drawWetsuitsDry();
+ if(typeof drawYellowFins==="function")drawYellowFins();   /* diving fins in front of the wetsuit rack (js/yellowfin.js) */
+ if(typeof drawScubaGlassesBehind==="function")drawScubaGlassesBehind();   /* diving mask by the boat (js/scubaglasses.js) — behind fighters */
  if(typeof drawFishnet==="function")drawFishnet();
  if(typeof drawFishbox==="function")drawFishbox();
  if(typeof drawFishingRod==="function")drawFishingRod();
@@ -2475,6 +2492,7 @@ function renderGame(){
  if(typeof drawDog==="function")drawDog();          /* roaming dog hazard (js/dog.js) */
  if(typeof drawToilet==="function")drawToilet();    /* toilet + caretaker (js/toilet.js) */
  if(typeof drawCO2Tank==="function")drawCO2Tank();
+ if(typeof drawScubaGlassesFront==="function")drawScubaGlassesFront();   /* 2 masks next to the CO2 tank (js/scubaglasses.js) — foreground */
  if(typeof drawRegulatorGuy==="function")drawRegulatorGuy();   /* diver by the tanks (js/regulator.js) — FOREGROUND, in front of the fighters */
  drawProjectiles();drawCodexes(tGlobal);drawFx();
  ctx.restore();

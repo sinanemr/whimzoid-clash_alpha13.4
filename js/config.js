@@ -30,8 +30,8 @@ const GAME_CONFIG = {
   },
   fighters: {
     scale: 0.78,       // CH_SCALE — sprite px -> world px
-    player1Spawn: 900, // SPAWN_1
-    player2Spawn: 1180 // SPAWN_2
+    player1Spawn: 780, // SPAWN_1 — around the boat (left of it)
+    player2Spawn: 1050 // SPAWN_2 — around the boat (right of it); car prop sits further right at ~1140
   },
   camera: {
     followSpeed: 4.5   // camX += (target-camX)*min(1, dt*followSpeed). 13.1 uses 4.5 (NOT 8).

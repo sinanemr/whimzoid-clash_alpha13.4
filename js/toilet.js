@@ -121,7 +121,7 @@ function updateToilet(dt) {
       nobetci.x -= NB_SPEED * dt;
       // shove fighters he barges through
       if (typeof fighters !== "undefined") for (const f of fighters) {
-        if (!f.alive) continue;
+        if (!f.alive || f.y < GROUND - S(8)) continue;   // up on an obstacle/airborne: the running caretaker can't reach them
         if (Math.abs(f.x - nobetci.x) < NB_BODY && nobetci.hitByRun.indexOf(f) < 0) {
           nobetci.hitByRun.push(f);
           if (NB_DMG > 0) f.takeDamage(NB_DMG, NB_KB, -1, { melee: true, unblockable: true, col: "#d8cfc4", fx: "#d8cfc4" });
