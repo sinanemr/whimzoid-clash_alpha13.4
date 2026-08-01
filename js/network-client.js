@@ -249,7 +249,7 @@ function NET_handleMatchEvent(msg) {
   switch (msg.event) {
     case "announce":
       // guest displays the host's round announcements
-      if (typeof announce === "function") announce(msg.text, msg.dur || 1000);
+      if (typeof roundAnnounce === "function") roundAnnounce(msg.text, msg.dur || 1000);
       return;
     case "match_victory":
       running = false;

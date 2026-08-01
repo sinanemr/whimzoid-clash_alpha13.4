@@ -2,8 +2,8 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{
   background:
-    repeating-linear-gradient(0deg, rgba(0,0,0,.12) 0 2px, transparent 2px 4px),
-    radial-gradient(ellipse at 50% 20%, #241c44 0%, var(--night) 65%);
+    repeating-linear-gradient(0deg, rgba(0,0,0,.10) 0 2px, transparent 2px 4px),
+    radial-gradient(ellipse 130% 90% at 50% 10%, #a85277 0%, #5e3a76 32%, #2c2154 60%, #140f2e 82%, #0a0818 100%);
   color:var(--bone); font-family:'Space Grotesk',sans-serif;
   min-height:100vh; display:flex; align-items:center; justify-content:center; overflow:hidden;
 }

@@ -21,7 +21,7 @@ CO2X_IMG.src = CO2X_DIR + "CO2_Tank_01_(explossive).png";
 const CO2X_IMG_W = 1080;
 // measured content: centre x, base bottom, valve TOP (burst origin), content width.
 const CO2X = { cx: 551, bottom: 1014, top: 444, cw: 161 };
-const CO2X_DRAW = 65;   // canvas draw size (world px) -> tank ~48 world px tall at the play plane
+const CO2X_DRAW = 67;   // canvas draw size (world px) -> tank ~48 world px tall at the play plane
 
 // where they stand (world x, at GROUND). Spread across the arena, clear of clutter. TUNE.
 const CO2X_SPOTS = [360, 840, 1300];

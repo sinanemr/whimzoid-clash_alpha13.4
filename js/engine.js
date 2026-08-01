@@ -146,15 +146,15 @@ const IMG_SPRITES={};
 "....cccc.cccc...",
 ]};
  ABILITIES.ember=[
-  f=>{f.state="special";f.t=0;announce("BLAZING RUSH!",650);addHeat(f,20);
+  f=>{f.state="special";f.t=0;skillAnnounce("BLAZING RUSH!",650);addHeat(f,20);
    const bonus=f.heat>=50?15:0;
    [80,200,330].forEach((d,i)=>meleeHit(f,{range:S(52),dmg:i===2?20+bonus:20,kb:i===2?130:40,delay:d,
     opts:{skill:true,col:"#f28022",fx:"#f28022"},onHit:i===2?(foe=>applyStun(foe,.5)):null}));},
-  f=>{f.state="special";f.t=0;announce("IGNITION FIST!",650);addHeat(f,25);
+  f=>{f.state="special";f.t=0;skillAnnounce("IGNITION FIST!",650);addHeat(f,25);
    const hot=f.heat>=80;
    meleeHit(f,{range:S(50),dmg:hot?95:75,kb:170,opts:{skill:true,col:"#f28022",fx:"#ffd23f"},onHit:foe=>{
     foe.burnDps=10;foe.burn=Math.max(foe.burn,hot?4:3);statusFloat(foe,"BURN","#f28022");}});},
-  f=>{f.state="special";f.t=0;announce("VENTING CYCLONE!",650);addHeat(f,-40);
+  f=>{f.state="special";f.t=0;skillAnnounce("VENTING CYCLONE!",650);addHeat(f,-40);
    ringFx(f.x,f.centerY,"#f28022",70);
    setTimeout(()=>{if(!running)return;const foe=other(f);
     if(Math.abs(foe.x-f.x)<70){foe.takeDamage(55,150,Math.sign(foe.x-f.x)||f.facing,{melee:true,skill:true,col:"#f28022",fx:"#f28022"});
@@ -210,15 +210,15 @@ const IMG_SPRITES={};
  ABILITIES.akira=[
   f=>{f.state="special";f.t=0;
    const elems=["FIRE","LIGHTNING","WIND"],el=elems[f.palmIdx%3];f.palmIdx++;
-   announce(el+" PALM!",650);
+   skillAnnounce(el+" PALM!",650);
    const emp=f.chi>=50||f.zen>0;
    meleeHit(f,{range:S(50),dmg:emp?75:65,kb:el==="WIND"?200:110,opts:{skill:true,col:el==="FIRE"?"#f28022":el==="LIGHTNING"?"#5ec8ff":"#b8e6c8",fx:"#7de8d8"},onHit:foe=>{
     if(el==="FIRE"){foe.burnDps=8;foe.burn=Math.max(foe.burn,3);statusFloat(foe,"BURN","#f28022");}
     else if(el==="LIGHTNING"){applyStun(foe,emp?.85:.7);statusFloat(foe,"PARALYZED","#5ec8ff");}
     else{foe.slowT=2;foe.slowAmt=.15;statusFloat(foe,"SLOWED","#b8e6c8");}}});},
-  f=>{f.state="special";f.t=0;announce("CHI BARRIER",650);
+  f=>{f.state="special";f.t=0;skillAnnounce("CHI BARRIER",650);
    f.barrier=100;f.barrierT=4;f.barrierHeal=20;addChi(f,10);ringFx(f.x,f.centerY,"#7de8d8",45);},
-  f=>{f.state="special";f.t=0;announce("ASTRAL SHADOW STRIKE!",650);
+  f=>{f.state="special";f.t=0;skillAnnounce("ASTRAL SHADOW STRIKE!",650);
    const emp=f.chi>=50||f.zen>0;
    projectiles.push({type:"shadow",x:MZX(f,16),y:f.centerY,vx:f.facing*340,vy:0,r:9,dmg:emp?85:70,owner:f,col:"#4a3d6b",skill:true,shadowEmp:emp});}];
 for(const id in IMG_SPRITES){for(const k in IMG_SPRITES[id]){const d=IMG_SPRITES[id][k];d.img=new Image();d.img.src=d.src;}}
@@ -389,7 +389,7 @@ function hitProps(x,facing,range,dmg,owner,y){
  if(y===undefined)y=GROUND-S(30);
  for(const pr of props.slice()){
   const pb=propBaseY(pr),cx=pr.x+pr.w/2;
-  if(Math.abs(cx-x)<range&&(cx-x)*facing>-8&&y>pb-pr.h-12&&y<pb+12)damageProp(pr,dmg,owner);
+  if(pr.hp>0&&Math.abs(cx-x)<range&&(cx-x)*facing>-8&&y>pb-pr.h-12&&y<pb+12)damageProp(pr,dmg,owner);  /* hp>0: attacks pass THROUGH a wrecked car */
  }
  for(const pl of plats.slice()){
   if(pl.hp===undefined)continue;
@@ -410,7 +410,7 @@ class Fighter{
  }
  /* Resets every buff/debuff/cooldown-adjacent timer to its default -- called on creation and at the start of every round. */
  resetStatus(){
-  this.armor=this.maxArmor;
+  this.armor=this.maxArmor; this.guardBroken=false;
   this.stun=0; this.frozen=0; this.hitFlash=0;
   this.blocking=false; this.crouching=false; this.onGround=true; this.jumps=0; this.alive=true;
   this.flyT=4; this.flyCd=0; this.flying=false; this._wingsFull=true;
@@ -499,15 +499,18 @@ class Fighter{
   if(this.d.id==="satori"&&opts.ranged)dmg*=.9;   /* Ninja Reflexes */
   if(this.momT>0&&opts.ranged)dmg*=.85;           /* Ninja Momentum */
   if(this.dr10T>0)dmg*=.9;
-  if(blocked){dmg*=0.3; kb*=0.35;}
+  if(blocked)kb*=0.35;   /* blocking softens knockback; the hit now drains the BLOCK BAR (armor), not HP */
   dmg=Math.max(1,Math.round(dmg));
-  /* ----- absorption: barrier -> armor -> HP (true & DoT bypass both) ----- */
+  /* ----- absorption: ability shields -> (BLOCK BAR only while blocking) -> HP (true & DoT bypass) -----
+     NEW BLOCK SYSTEM: an UNBLOCKED hit goes straight to HP. While BLOCKING, the hit drains the block
+     bar (armor) instead; any overflow past an emptied bar still spills onto HP. morphShield/barrier are
+     separate ability shields and keep absorbing regardless. */
   let hpDmg=dmg;
   if(!opts.trueDmg&&!opts.dot){
    const pierce=(opts.pierce||0)+((att&&att.surge>0)?.15:0);
    if(this.morphShield>0){const a=Math.min(this.morphShield,hpDmg);this.morphShield-=a;hpDmg-=a;if(this.morphShield<=0){this.morphShield=0;}}
    if(this.barrier>0){const a=Math.min(this.barrier,hpDmg);this.barrier-=a;hpDmg-=a;}
-   if(hpDmg>0&&this.armor>0){
+   if(blocked&&hpDmg>0&&this.armor>0){
     let a=Math.min(this.armor,Math.round(hpDmg*(1-Math.min(.9,pierce))));
     if(this.defBreak>0)a=Math.round(a*0.85);
     this.armor-=Math.min(this.armor,a);hpDmg-=a;}
@@ -605,10 +608,14 @@ function bloodSplash(x,y,n,dir){   /* fan of droplets thrown outward + up */
  trimParticles();
 }
 function ringFx(x,y,col,max){rings.push({x,y,r:4,max,col,t:0});}
-/* Shows the on-screen skill/ult name banner for `ms` milliseconds. */
-function announce(txt,ms=900){const el=document.getElementById("announce");el.textContent=txt;el.classList.add("show");clearTimeout(announce._t);announce._t=setTimeout(()=>el.classList.remove("show"),ms);
+/* Round-flow banner (ROUND / FIGHT / WINS ROUND / OVERHEAT) — the only centred on-screen text. */
+function roundAnnounce(txt,ms=900){const el=document.getElementById("announce");if(!el)return;el.textContent=txt;el.classList.add("show");clearTimeout(roundAnnounce._t);roundAnnounce._t=setTimeout(()=>el.classList.remove("show"),ms);
  /* Online host mirrors round announcements to the guest (round start / FIGHT / WINS ROUND). */
  if(typeof onlineIsMatchHost==="function"&&onlineIsMatchHost()&&typeof NET_send==="function")NET_send({type:"match_event",event:"announce",text:txt,dur:ms});}
+/* Skill/ult NAME banners are SUPPRESSED — every character's skill/ult name routes through announce()
+   (or skillAnnounce()), and both are silent. To bring the names back, make these call roundAnnounce. */
+function announce(txt,ms){/* suppressed — skill/ult names are not shown */}
+function skillAnnounce(txt,ms){/* suppressed */}
 /* Pops a small floating status label (e.g. 'STUNNED', 'MISS') above a fighter. */
 function statusFloat(f,txt,col){floaters.push({x:f.x,y:MZY(f,78),txt,t:0,col,size:6});}
 /* Rolls against a base probability -- a hook for future per-character accuracy tweaks (currently just Math.random()<base). */
@@ -628,7 +635,7 @@ function addHeat(f,n){
  f.heat+=n;
  if(f.heat>=100){/* OVERHEAT */
   f.heat=30;f.hp=Math.max(1,f.hp-40);f.skillLock=2;f.overheatDeb=3;
-  announce("OVERHEAT!",800);statusFloat(f,"OVERHEAT -40","#e2384a");
+  roundAnnounce("OVERHEAT!",800);statusFloat(f,"OVERHEAT -40","#e2384a");
   spawnHitFx(f.x,f.centerY,"#f28022",14);ringFx(f.x,f.centerY,"#e2384a",60);shake=Math.max(shake,.5);}
 }
 
@@ -694,13 +701,13 @@ function releaseHaydarUlt(f){
 }
 /* One cast function per hero for their R/M ultimate -- mirrors the `ult` name/description on that hero's CHARS entry. */
 const ULTS={
- ember(f){announce("FLAME SPIRAL",1100);f.state="special";f.t=0;
+ ember(f){skillAnnounce("FLAME SPIRAL",1100);f.state="special";f.t=0;
   const bonus=f.heat>=80?40:f.heat>=50?20:0;f.heat=0;
   const foe=other(f);
   [120,300,480,660,840].forEach((d,i)=>meleeHit(f,{range:S(60),dmg:i===4?22+bonus:22,kb:i===4?220:20,delay:d,
    opts:{skill:true,col:"#f28022",fx:"#ffd23f"},onHit:i===4?(fo=>{fo.burnDps=10;fo.burn=Math.max(fo.burn,4);statusFloat(fo,"BURN","#f28022");}):null}));
   for(let i=0;i<10;i++)setTimeout(()=>{if(running)particles.push({x:f.x+rand(-14,14),y:f.y-rand(10,64),vx:rand(-40,40),vy:rand(-120,-40),r:rand(1,3),col:i%2?"#ffd23f":"#f28022",t:0,life:.4});},i*90);},
- akira(f){announce("ZEN STATE",1100);f.state="special";f.t=0;
+ akira(f){skillAnnounce("ZEN STATE",1100);f.state="special";f.t=0;
   f.zen=6;f.chi=100;ringFx(f.x,f.centerY,"#7de8d8",170);ringFx(f.x,f.centerY,"#ffd76a",120);
   setTimeout(()=>{if(!running)return;const foe=other(f);
    if(Math.abs(foe.x-f.x)<170){foe.takeDamage(90,220,Math.sign(foe.x-f.x)||f.facing,{skill:true,col:"#7de8d8",fx:"#7de8d8"});
@@ -711,7 +718,7 @@ const ULTS={
 function resolveCodex(c){
  if(!running||roundOver)return;
  const foe=c.target,f=c.owner;
- announce("COLLAPSE!",700);
+ skillAnnounce("COLLAPSE!",700);
  ringFx(foe.x,foe.centerY,"#5fe8e0",100);ringFx(foe.x,foe.centerY,"#f2b632",70);
  shake=Math.max(shake,.65);
  for(let i=0;i<16;i++)particles.push({x:foe.x+rand(-20,20),y:foe.centerY+rand(-30,30),vx:rand(-120,120),vy:rand(-150,30),r:rand(1,3),col:i%2?"#5fe8e0":"#eaffff",t:0,life:rand(.3,.6)});
@@ -759,7 +766,7 @@ function readInput(f,dt){
  let mv=0;
  if(IN.down("left"))mv-=1; if(IN.down("right"))mv+=1;
  if(f.confuse>0)mv=-mv;
- f.blocking=!!IN.down("block")&&f.onGround;
+ f.blocking=!!IN.down("block")&&f.onGround&&!f.guardBroken;   /* can't block while guard is broken (block bar drained) */
  f.crouching=!!IN.down("crouch")&&f.onGround&&!f.blocking;
  if(f.blocking)f.lastAction=tGlobal;
  if(f.state==="attack"||f.state==="special"){f.vx*=0.85;return;}
@@ -843,7 +850,7 @@ function aiControl(f,dt){
    return;}
   if(beh==="block"){
    f.aiMove=0;f.crouching=false;f.facing=f.x<foe.x?1:-1;
-   if(f.onGround){f.blocking=true;f.vx=0;f.state="idle";f.lastAction=tGlobal;}
+   if(f.onGround&&!f.guardBroken){f.blocking=true;f.vx=0;f.state="idle";f.lastAction=tGlobal;}
    return;}
   diff=1;   /* "fight": behave like a Warrior-level opponent */
  }
@@ -857,7 +864,7 @@ function aiControl(f,dt){
   if(threat&&f.onGround&&Math.random()<[.2,.45,.7][diff]){f.crouching=true;}
   const foeAtk=foe.state==="attack"||foe.state==="special";
   const usable=[0,1,2].filter(i=>f.cd[i]<=0&&f.silence<=0&&f.skillLock<=0);
-  if(foeAtk&&adist<65&&Math.random()<[.25,.5,.75][diff]){f.blocking=true;}
+  if(foeAtk&&adist<65&&!f.guardBroken&&Math.random()<[.25,.5,.75][diff]){f.blocking=true;}
   else if(f.meter>=100&&f.silence<=0&&f.skillLock<=0&&adist<(ULT_RANGE[f.d.id]||999)
    &&(f.d.id!=="ember"||f.heat>=50||Math.random()<.25)&&Math.random()<agg){tryUlt(f);}
   else if(usable.length&&Math.random()<agg*.55){
@@ -1101,6 +1108,13 @@ function updateFighter(f,dt){
     any skill, or ult). Breakable/explosive props use it so ONE attack = ONE hit even if the move has
     multiple damage ticks (see damageProp / hitCars / hitToilet). */
  {const _atkNow=(f.state==="attack"||f.state==="special");if(_atkNow&&!f._wasAtk)f.atkSeq=(f.atkSeq||0)+1;f._wasAtk=_atkNow;}
+ /* BLOCK BAR: refills while NOT blocking. GUARD BREAK when it empties — can't block again until it
+    has recovered to at least 25%. */
+ if(f.alive){
+  if(!f.blocking&&f.armor<f.maxArmor)f.armor=Math.min(f.maxArmor,f.armor+f.maxArmor*0.12*dt);
+  if(f.armor<=0){if(!f.guardBroken){f.guardBroken=true;f.blocking=false;statusFloat(f,"GUARD BREAK","#e2384a");}}
+  else if(f.armor>=f.maxArmor*0.25)f.guardBroken=false;
+ }
  if(f.state==="attack"&&f.t>(f.d.id==="agron"&&f.frenzy>0?.27:.3))f.state="idle";
  if(f.state==="special"&&f.t>.45&&!(f.d.id==="notalk"&&f.windmill>0)&&!(f.d.id==="munevver"&&f.skillAT>0)&&!(f.d.id==="necmi"&&(f.skillAT>0||f.skillBT>0))&&!(f.d.id==="haydar"&&(f.skillAT>0||f.skillBT>0||f.ultCharging))&&!(f.d.id==="putuk"&&(f.counterT>0||f._counterHitT>0)))f.state="idle";
  /* RELENTLESS MARCH — uninterruptible advance: catch the foe and DRAG them along */
@@ -1252,7 +1266,7 @@ function updateProjectiles(dt){
    let smashed=false;
    for(const pr of props.slice()){
     const pb=propBaseY(pr);
-    if(p.x>pr.x-2&&p.x<pr.x+pr.w+2&&p.y>pb-pr.h-12&&p.y<pb+12){damageProp(pr,p.dmg||20,p.owner);smashed=true;break;}
+    if(pr.hp>0&&p.x>pr.x-2&&p.x<pr.x+pr.w+2&&p.y>pb-pr.h-12&&p.y<pb+12){damageProp(pr,p.dmg||20,p.owner);smashed=true;break;}  /* hp>0: shots pass THROUGH a wrecked car */
    }
   if(!smashed)for(const pl of plats.slice()){
    if(pl.hp===undefined)continue;
@@ -1388,14 +1402,14 @@ function startRound(){
  camX=camClamp((SPAWN_1+SPAWN_2)/2-W/2);camScale=1;   /* recentre + reset zoom each round */
  timer=matchRoundTime;roundOver=false;paused=false;
  document.getElementById("pauseMenu").classList.remove("show");
- announce("ROUND "+roundNum,1000);
- setTimeout(()=>{if(document.getElementById("fight").classList.contains("active"))announce("FIGHT!",600);},1100);
+ roundAnnounce("ROUND "+roundNum,1000);
+ setTimeout(()=>{if(document.getElementById("fight").classList.contains("active"))roundAnnounce("FIGHT!",600);},1100);
 }
 /* Ends the current round: awards the winner a round win and announces it, then either starts the next round or shows the match-victory screen once someone has 2 wins. */
 function endRound(winner){
  if(roundOver)return;roundOver=true;
  winner.wins++;
- announce(winner.d.name.toUpperCase()+" WINS ROUND",1400);
+ roundAnnounce(winner.d.name.toUpperCase()+" WINS ROUND",1400);
  const _sid=onlineSessionId,_rid=onlineRoundId;   /* capture epoch: don't advance a superseded online round */
  setTimeout(()=>{
   if(onlineCallbackStale(_sid,_rid))return;
@@ -2494,9 +2508,12 @@ function renderGame(){
  if(typeof drawCars==="function")drawCars();        /* parked traffic on the left road (js/cars.js) — behind fighters */
  if(typeof drawRope==="function")drawRope();        /* coiled mooring ropes on the pier (js/rope.js) — behind fighters */
  if(typeof drawPallets==="function")drawPallets();  /* wooden pallets in the otoparks (js/pallet.js) — behind fighters */
+ if(typeof drawTrashbins==="function")drawTrashbins();  /* trashbins (js/trashbin.js) — behind fighters */
+ if(typeof drawSeats==="function")drawSeats();  /* plastic chairs (js/seat.js) — behind fighters */
  /* compressor NPC disabled for now — code kept in js/compressor.js; re-enable by uncommenting:*/
  if(typeof drawCompMech==="function")drawCompMech();
- if(typeof drawCompressorGuy==="function")drawCompressorGuy(); 
+ if(typeof drawCradleBehind==="function")drawCradleBehind();   /* 2 stacked crates by the compressor (js/plasticcradle.js) — behind fighters */
+ if(typeof drawCompressorGuy==="function")drawCompressorGuy();
  if(typeof drawWetsuitsDry==="function")drawWetsuitsDry();
  if(typeof drawYellowFins==="function")drawYellowFins();   /* diving fins in front of the wetsuit rack (js/yellowfin.js) */
  if(typeof drawScubaGlassesBehind==="function")drawScubaGlassesBehind();   /* diving mask by the boat (js/scubaglasses.js) — behind fighters */
@@ -2511,6 +2528,7 @@ function renderGame(){
  if(typeof drawKid==="function")drawKid();   /* snacking kid on top of the boat (js/kid.js) — behind fighters */
  if(typeof drawScaffold==="function")drawScaffold();
  drawStageObjects(tGlobal);
+ if(typeof drawIronboxes==="function")drawIronboxes();   /* ironboxes on/around the scaffolds (js/ironbox.js) — after scaffolds, behind fighters */
  fighters.slice().sort((x,y)=>(x.alive?0:-1)-(y.alive?0:-1)).forEach(f=>drawFighter(f,tGlobal));
  if(typeof drawRegulatorGuy==="function")drawRegulatorGuy();   /* diver by the tanks (js/regulator.js) — FOREGROUND, in front of the fighters */
  if(typeof drawDog==="function")drawDog();          /* roaming dog hazard (js/dog.js) */
@@ -2518,6 +2536,7 @@ function renderGame(){
  if(typeof drawCO2Tank==="function")drawCO2Tank();
  if(typeof drawScubaGlassesFront==="function")drawScubaGlassesFront();   /* 2 masks next to the CO2 tank (js/scubaglasses.js) — foreground */
  if(typeof drawRegulatorGuy==="function")drawRegulatorGuy();   /* diver by the tanks (js/regulator.js) — FOREGROUND, in front of the fighters */
+ if(typeof drawCradleFore==="function")drawCradleFore();   /* crate next to the regulator (js/plasticcradle.js) — foreground */
  drawProjectiles();drawCodexes(tGlobal);drawFx();
  ctx.restore();
  drawHUD();                                /* HUD stays screen-fixed */
@@ -2543,8 +2562,8 @@ function loop(ts){
  renderGame();
  requestAnimationFrame(loop);
 }
-/* =============== TITLE ORB =============== */
-(function(){const oc=document.getElementById("orbCanvas"),g=oc.getContext("2d");
+/* =============== TITLE ORB (removed from the menu — no-op if the canvas isn't present) =============== */
+(function(){const oc=document.getElementById("orbCanvas");if(!oc)return;const g=oc.getContext("2d");
  function tick(t){g.clearRect(0,0,24,24);
   g.fillStyle="#c98f1d";g.beginPath();g.arc(12,12,10,0,7);g.fill();
   g.fillStyle="#f2b632";g.beginPath();g.arc(12,12,8,0,7);g.fill();
