@@ -1,5 +1,5 @@
 /**
- * Whimzoid Clash — coiled mooring ROPES scattered on the Kabatepe pier near the boats.
+ * What Just Hit Me — coiled mooring ROPES scattered on the Kabatepe pier near the boats.
  * Plain <script>, loaded AFTER engine.js (uses ctx). Pure static decoration, drawn behind the
  * fighters. Add/adjust entries in Rope_PLACES to move or add coils.
  */

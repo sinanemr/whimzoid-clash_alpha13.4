@@ -1,5 +1,5 @@
 /**
- * Whimzoid Clash — online UI (online menu, lobby, fighter picker, in-match menu,
+ * What Just Hit Me — online UI (online menu, lobby, fighter picker, in-match menu,
  * post-match rematch voting, error toasts). Plain <script>, loaded last among the
  * online scripts (after online-state + network-client), before main.js.
  *
@@ -19,7 +19,7 @@ const ONLINE_ERRORS = {
   CONNECTION_FAILED: "COULD NOT REACH THE SERVER. Check your internet connection and try again.",
   CONNECTION_TIMEOUT: "CONNECTION TIMED OUT. Check your internet connection and try again.",
   UNSUPPORTED: "THIS DEVICE DOES NOT SUPPORT ONLINE PLAY (no WebSocket).",
-  VERSION_MISMATCH: "UPDATE REQUIRED — your game is out of date. Please install the latest Whimzoid Clash to play online.",
+  VERSION_MISMATCH: "UPDATE REQUIRED — your game is out of date. Please install the latest What Just Hit Me to play online.",
   FILE_PROTOCOL: "Online Play needs the game server. In a terminal run  npm install  then  npm start  and open http://localhost:8080"
 };
 

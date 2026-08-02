@@ -1,5 +1,5 @@
 /**
- * Whimzoid Clash — SODA patio UMBRELLA (SodaUmbrella_01) props on the Kabatepe stage.
+ * What Just Hit Me — SODA patio UMBRELLA (SodaUmbrella_01) props on the Kabatepe stage.
  * Plain <script>, loaded AFTER engine.js (uses ctx). Pure static decoration, drawn with the ground
  * decor behind the fighters (and behind the chair, so the chair sits in front of the pole).
  * To add another umbrella, just append an entry to Umbrella_PLACES.

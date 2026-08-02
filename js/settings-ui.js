@@ -1,5 +1,5 @@
 /**
- * Whimzoid Clash — settings UI (plain <script>, loaded after engine + characters).
+ * What Just Hit Me — settings UI (plain <script>, loaded after engine + characters).
  * Builds the settings overlay, tab pages, control-remap capture, conflict dialogs,
  * and Apply / Cancel / Restore Defaults. Edits pendingSettings; Apply commits.
  */

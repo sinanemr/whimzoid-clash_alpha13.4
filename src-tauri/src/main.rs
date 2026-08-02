@@ -3,5 +3,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    whimzoid_clash_lib::run();
+    what_just_hit_me_lib::run();
 }

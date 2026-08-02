@@ -1,5 +1,5 @@
 /**
- * Whimzoid Clash — diving MASKS (ScubaGlasses_01) set down around the Kabatepe dive gear.
+ * What Just Hit Me — diving MASKS (ScubaGlasses_01) set down around the Kabatepe dive gear.
  * Plain <script>, loaded AFTER engine.js (uses ctx). Pure static decoration.
  *
  * Three masks: TWO next to the CO2 tank (js/CO2Tank.js, world 900/275 — a FOREGROUND item drawn in

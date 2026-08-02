@@ -1,5 +1,5 @@
 /**
- * Whimzoid Clash — explosive CO2 CYLINDERS (CO2_Tank_01_(explossive)) standing at the PLAYERS'
+ * What Just Hit Me — explosive CO2 CYLINDERS (CO2_Tank_01_(explossive)) standing at the PLAYERS'
  * level on the Kabatepe stage. Plain <script>, loaded AFTER engine.js AND cars.js (reuses
  * spawnCarBlast + drawFlameTuft). Scattered around the arena as breakable/explosive hazards.
  * (File is co2explosive.js — NOT co2tank.js, which would collide with CO2Tank.js on Windows.)

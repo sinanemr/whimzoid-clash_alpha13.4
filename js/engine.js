@@ -1,5 +1,5 @@
 /**
- * WHIMZOID CLASH — game engine (migrated verbatim from whimzoid-clash_alpha13.1.html).
+ * WHAT JUST HIT ME — game engine (migrated verbatim from what-just-hit-me_alpha13.1.html).
  *
  * Loaded as a plain <script> after config.js + controls.js (see index.html), so the
  * game runs by double-clicking index.html (file://) as well as from a web server.

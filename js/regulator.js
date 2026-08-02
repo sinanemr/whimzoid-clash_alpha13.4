@@ -1,5 +1,5 @@
 /**
- * Whimzoid Clash — foreground NPC for the Kabatepe stage: a diver kneeling by the scuba
+ * What Just Hit Me — foreground NPC for the Kabatepe stage: a diver kneeling by the scuba
  * tanks, checking his regulator gauge. Plain <script>, loaded AFTER engine.js (uses ctx,
  * tGlobal). Pure decoration — animation driven by the synced tGlobal so host and guest match.
  *

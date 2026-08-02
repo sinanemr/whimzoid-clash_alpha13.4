@@ -1,4 +1,4 @@
-# Whimzoid Clash — Desktop app (Tauri 2): build, deploy & ship
+# What Just Hit Me — Desktop app (Tauri 2): build, deploy & ship
 
 This document is for **you, the developer**. It explains how to turn the web game
 into a downloadable Windows installer, where the installer comes out, how to point
@@ -50,9 +50,9 @@ free Render deploy step by step. In short:
 
 - Push this repo to GitHub, create a Render **Web Service** (Free), Build =
   `npm install`, Start = `npm start`.
-- Render gives you a URL like `https://whimzoid-clash.onrender.com`.
+- Render gives you a URL like `https://what-just-hit-me.onrender.com`.
 - The WebSocket endpoint is that URL with **`wss://`** and path **`/ws`**, i.e.
-  `wss://whimzoid-clash.onrender.com/ws`.
+  `wss://what-just-hit-me.onrender.com/ws`.
 
 > The server binds `process.env.PORT` and serves the WebSocket at `/ws`, so it works
 > on Render/Railway/Fly/etc. with no changes. WebSockets are required — a plain
@@ -68,7 +68,7 @@ Edit **`js/net-config.js`** and set `serverUrl` to your deployed WebSocket URL:
 
 ```js
 const NETWORK_CONFIG = {
-  serverUrl: "wss://whimzoid-clash.onrender.com/ws",   // <-- your server
+  serverUrl: "wss://what-just-hit-me.onrender.com/ws",   // <-- your server
   protocolVersion: 1,
   connectionTimeoutMs: 10000,
   reconnectAttempts: 3
@@ -106,7 +106,7 @@ into `dist/`), then Tauri compiles the native shell and bundles the **NSIS insta
 **Output location:**
 
 ```
-src-tauri/target/release/bundle/nsis/Whimzoid Clash_13.4.0_x64-setup.exe
+src-tauri/target/release/bundle/nsis/What Just Hit Me_13.4.0_x64-setup.exe
 ```
 
 That `*-setup.exe` is what you give players.
@@ -122,11 +122,11 @@ npm run tauri dev
 
 ## 6. How players install & launch
 
-1. Player downloads `Whimzoid Clash_..._x64-setup.exe` (from you — your site, a
+1. Player downloads `What Just Hit Me_..._x64-setup.exe` (from you — your site, a
    release page, etc.).
 2. Runs it — a normal Windows installer. It installs the game and creates **Start
    Menu / desktop shortcuts**.
-3. Launches **Whimzoid Clash** from the shortcut — a real app window opens (no
+3. Launches **What Just Hit Me** from the shortcut — a real app window opens (no
    browser, no terminal).
 4. Main menu: **LOCAL PLAY · MULTIPLAYER · SETTINGS · EXIT**.
 

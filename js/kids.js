@@ -1,5 +1,5 @@
 /**
- * Whimzoid Clash — background NPC for 2 kids*/
+ * What Just Hit Me — background NPC for 2 kids*/
 
 
 "use strict";

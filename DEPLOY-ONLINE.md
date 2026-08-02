@@ -5,7 +5,7 @@ different networks. It's the server the **installed desktop game** connects to (
 [DESKTOP-BUILD.md](DESKTOP-BUILD.md)); after deploying, you set its `wss://…/ws`
 address in `js/net-config.js` and build the installer.
 
-You get a permanent URL, e.g. `https://whimzoid-clash.onrender.com`. Two bonuses:
+You get a permanent URL, e.g. `https://what-just-hit-me.onrender.com`. Two bonuses:
 that URL also serves a **browser version** of the game (handy for quick testing in two
 tabs), and the WebSocket endpoint is that URL as `wss://…/ws`.
 
@@ -23,7 +23,7 @@ GitHub is just online storage for the game's files; Render (Part B) reads from i
    and **sign in** with the account from step 1.
 3. In GitHub Desktop: **File → Add local repository…**
 4. Click **Choose…** and select this folder:
-   `C:\Users\semre\Documents\Mincik Game\whimzoid-clash_alpha13.4`
+   `C:\Users\semre\Documents\Mincik Game\what-just-hit-me_alpha13.4`
 5. It will say "this directory is not a Git repository" — click the blue
    **"create a repository"** link, then click **Create repository**.
    (A `.gitignore` file is already included so it won't upload junk.)
@@ -41,7 +41,7 @@ Render runs the little server so the room codes work over the internet.
 1. Go to <https://render.com> → **Get Started / Sign up**. Choosing **"Sign in with
    GitHub"** is easiest (it links the account from Part A). Authorize it.
 2. On the dashboard click **New +** (top right) → **Web Service**.
-3. **Connect** your GitHub if asked, then find and select your **whimzoid-clash** repo →
+3. **Connect** your GitHub if asked, then find and select your **what-just-hit-me** repo →
    **Connect**.
 4. Render fills most fields in automatically. Check these:
    - **Runtime:** Node
@@ -50,7 +50,7 @@ Render runs the little server so the room codes work over the internet.
    - **Instance Type:** **Free**
 5. Click **Create Web Service** (or **Deploy**).
 6. Wait a couple of minutes until the status turns **Live**. Near the top you'll see
-   your URL, like `https://whimzoid-clash.onrender.com`. **That's your game link.**
+   your URL, like `https://what-just-hit-me.onrender.com`. **That's your game link.**
 
 ---
 

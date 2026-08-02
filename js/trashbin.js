@@ -1,5 +1,5 @@
 /**
- * Whimzoid Clash — TRASHBIN props on the Kabatepe stage. Plain <script>, loaded AFTER engine.js
+ * What Just Hit Me — TRASHBIN props on the Kabatepe stage. Plain <script>, loaded AFTER engine.js
  * (uses ctx). Pure static decoration, drawn with the ground decor behind the fighters.
  *
  * Two sprite variants: "01" (green domed bin) and "02" (green barrel bin). To add another bin, just

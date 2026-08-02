@@ -1,5 +1,5 @@
 /**
- * Whimzoid Clash — subtle animated water shimmer on the Kabatepe sea. Plain <script>, loaded
+ * What Just Hit Me — subtle animated water shimmer on the Kabatepe sea. Plain <script>, loaded
  * AFTER engine.js (uses ctx, tGlobal, STAGE_BG, WORLD_W, H). Twinkling glints, ADDITIVE-blended at
  * low opacity so they read as sunlight sparkling ON the water. Deterministic from tGlobal.
  *

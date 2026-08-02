@@ -1,5 +1,5 @@
 /**
- * Whimzoid Clash — wooden STOOL (Wooden Stool_01) props on the Kabatepe stage.
+ * What Just Hit Me — wooden STOOL (Wooden Stool_01) props on the Kabatepe stage.
  * Plain <script>, loaded AFTER engine.js (uses ctx). Pure static decoration, drawn with the ground
  * decor behind the fighters, and AFTER the backgammon table so it sits in front of it.
  * To add another stool, just append an entry to Stool_PLACES.

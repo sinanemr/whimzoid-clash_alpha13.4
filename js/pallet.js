@@ -1,5 +1,5 @@
 /**
- * Whimzoid Clash — wooden PALLETS left around the otopark (car park) on the Kabatepe stage.
+ * What Just Hit Me — wooden PALLETS left around the otopark (car park) on the Kabatepe stage.
  * Plain <script>, loaded AFTER engine.js (uses ctx). Pure static decoration, drawn behind the
  * fighters — like pallets somebody dumped and never picked up.
  *

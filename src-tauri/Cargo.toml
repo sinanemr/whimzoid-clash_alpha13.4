@@ -1,14 +1,14 @@
 [package]
-name = "whimzoid-clash"
-version = "13.4.0"
-description = "Whimzoid Clash desktop client"
-authors = ["Whimzoid"]
+name = "what-just-hit-me"
+version = "1.0.0"
+description = "What Just Hit Me desktop client"
+authors = ["What Just Hit Me"]
 edition = "2021"
 rust-version = "1.77.2"
 
 # The library the Tauri app runs through (main.rs -> run()).
 [lib]
-name = "whimzoid_clash_lib"
+name = "what_just_hit_me_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

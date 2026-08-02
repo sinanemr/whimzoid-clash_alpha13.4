@@ -1,5 +1,5 @@
 /**
- * Whimzoid Clash — a destructible, standable, EXPLODING car on the Kabatepe pier.
+ * What Just Hit Me — a destructible, standable, EXPLODING car on the Kabatepe pier.
  * Plain <script>, loaded AFTER engine.js AND cars.js (reuses spawnCarBlast / drawWreckFire).
  *
  * Registered as a destructible prop (kind:"car") via buildCarProps(); its roof is a one-way

@@ -1,8 +1,8 @@
 {
-  "name": "whimzoid-clash",
-  "version": "13.4.0",
+  "name": "what-just-hit-me",
+  "version": "1.0.0",
   "private": true,
-  "description": "Whimzoid Clash — pixel-art fighting game with private online 1v1 (host-authoritative).",
+  "description": "What Just Hit Me — pixel-art fighting game with private online 1v1 (host-authoritative).",
   "type": "commonjs",
   "scripts": {
     "start": "node server/server.js",

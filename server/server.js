@@ -1,6 +1,6 @@
 "use strict";
 /**
- * Whimzoid Clash — combined HTTP + WebSocket server (host-authoritative online 1v1).
+ * What Just Hit Me — combined HTTP + WebSocket server (host-authoritative online 1v1).
  *
  * One Node process:
  *   1. Serves the static game files over HTTP (RUN_GAME.html + js/css/assets).
@@ -329,6 +329,6 @@ const heartbeat = setInterval(() => {
 wss.on("close", () => clearInterval(heartbeat));
 
 httpServer.listen(PORT, () => {
-  console.log(`Whimzoid Clash server running at http://localhost:${PORT}`);
+  console.log(`What Just Hit Me server running at http://localhost:${PORT}`);
   console.log(`Open that URL in two browser windows (or on two devices on the same network) to play online.`);
 });

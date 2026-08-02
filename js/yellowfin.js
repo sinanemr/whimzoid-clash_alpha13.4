@@ -1,5 +1,5 @@
 /**
- * Whimzoid Clash — yellow diving FINS left on the ground in front of / under the wetsuit rack
+ * What Just Hit Me — yellow diving FINS left on the ground in front of / under the wetsuit rack
  * (WetsuitsDry_01) on the Kabatepe pier. Plain <script>, loaded AFTER engine.js (uses ctx). Pure
  * static decoration; drawn right after the wetsuits so the fins sit IN FRONT of them.
  *

@@ -4,8 +4,8 @@ use Digest::MD5 qw(md5_hex);
 
 # Extracts every embedded base64 image from the source game into assets/ files,
 # de-duplicates identical blobs, and writes a JSON manifest describing each state.
-my $SRC  = "C:/Users/semre/Documents/Mincik Game/whimzoid-clash_alpha13.1.html";
-my $ROOT = "C:/Users/semre/Documents/Mincik Game/whimzoid-clash-refactored";
+my $SRC  = "C:/Users/semre/Documents/Mincik Game/what-just-hit-me_alpha13.1.html";
+my $ROOT = "C:/Users/semre/Documents/Mincik Game/what-just-hit-me-refactored";
 
 my %CHARFOLDER = (notalk=>"no-talking-man", ember=>"emberstrike");  # id -> asset folder (else = id)
 

@@ -6,8 +6,8 @@ use File::Find;
 # Builds js/engine.js from the 13.1 <script> body:
 #  - replaces every base64 data-URI with the matching extracted asset path
 #  - externalises config / controls / on-screen key labels to the new modules
-my $SRC  = "C:/Users/semre/Documents/Mincik Game/whimzoid-clash_alpha13.1.html";
-my $ROOT = "C:/Users/semre/Documents/Mincik Game/whimzoid-clash-refactored";
+my $SRC  = "C:/Users/semre/Documents/Mincik Game/what-just-hit-me_alpha13.1.html";
+my $ROOT = "C:/Users/semre/Documents/Mincik Game/what-just-hit-me-refactored";
 
 # --- md5(asset bytes) -> "assets/..." relative path ---
 my %byMd5;
@@ -62,7 +62,7 @@ my $tn=0; $tn++ while $body =~ s/\btimer=60\b/timer=CFG.match.roundTime/; print 
 # --- module header (imports) ---
 my $header = <<'JS';
 /**
- * WHIMZOID CLASH — game engine (migrated verbatim from whimzoid-clash_alpha13.1.html).
+ * WHAT JUST HIT ME — game engine (migrated verbatim from what-just-hit-me_alpha13.1.html).
  *
  * Loaded as a CLASSIC script (not an ES module) by js/main.js, on purpose: the
  * original 4000-line script runs in sloppy mode, and forcing it into a strict ES

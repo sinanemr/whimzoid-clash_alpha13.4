@@ -1,5 +1,5 @@
 /**
- * Whimzoid Clash — settings model (plain <script>, loaded AFTER controls.js and
+ * What Just Hit Me — settings model (plain <script>, loaded AFTER controls.js and
  * BEFORE engine.js). Defines the settings data, safe load/save/merge, validation,
  * the active/pending pair, "effective" helpers the engine reads each frame, and
  * applySettings() which pushes values into the live game systems.
@@ -8,7 +8,7 @@
  */
 "use strict";
 
-const SETTINGS_STORAGE_KEY = "whimzoid-clash-settings-v1";
+const SETTINGS_STORAGE_KEY = "what-just-hit-me-settings-v1";
 
 const DEFAULT_SETTINGS = {
   match: {

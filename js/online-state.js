@@ -1,5 +1,5 @@
 /**
- * Whimzoid Clash — online session state, serialization, snapshots, interpolation.
+ * What Just Hit Me — online session state, serialization, snapshots, interpolation.
  * Plain <script>, loaded AFTER engine + characters + settings, BEFORE network-client
  * and online-ui. Uses the shared global scope to read/write engine state
  * (fighters, projectiles, camX, timer, …). Networking transport lives in

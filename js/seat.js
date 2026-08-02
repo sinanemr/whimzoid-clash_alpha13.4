@@ -1,5 +1,5 @@
 /**
- * Whimzoid Clash — white plastic CHAIR (Seat_02) props on the Kabatepe stage.
+ * What Just Hit Me — white plastic CHAIR (Seat_02) props on the Kabatepe stage.
  * Plain <script>, loaded AFTER engine.js (uses ctx). Pure static decoration, drawn with the ground
  * decor behind the fighters. To add another chair, just append an entry to Seat_PLACES.
  */

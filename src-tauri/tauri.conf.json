@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Whimzoid Clash",
-  "version": "13.4.0",
-  "identifier": "com.whimzoid.clash",
+  "productName": "What Just Hit Me",
+  "version": "1.0.0",
+  "identifier": "com.whatjusthitme.game",
   "build": {
     "beforeDevCommand": "npm run build:frontend",
     "beforeBuildCommand": "npm run build:frontend",
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Whimzoid Clash",
+        "title": "What Just Hit Me?",
         "url": "RUN_GAME.html",
         "width": 1024,
         "height": 660,

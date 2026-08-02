@@ -1,5 +1,5 @@
 /**
- * Whimzoid Clash — background NPC for the Kabatepe stage: a guy fiddling with a diving
+ * What Just Hit Me — background NPC for the Kabatepe stage: a guy fiddling with a diving
  * compressor in front of the white boat. Plain <script>, loaded AFTER engine.js (uses
  * GROUND, ctx, tGlobal). Pure decoration — drawn in front of the boat but BEHIND the
  * fighters, animation driven by the synced tGlobal, so host and guest match with no sync.

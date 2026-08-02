@@ -1,5 +1,5 @@
 /**
- * Whimzoid Clash — right-side PUBLIC TOILET event for the Kabatepe stage.
+ * What Just Hit Me — right-side PUBLIC TOILET event for the Kabatepe stage.
  * Plain <script>, loaded AFTER engine.js (uses fighters, GROUND, WALL_L/R, S, ctx,
  * statusFloat, spawnHitFx, ringFx, roundOver, projectiles).
  *

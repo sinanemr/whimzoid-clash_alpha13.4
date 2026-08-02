@@ -1,5 +1,5 @@
 /**
- * Whimzoid Clash - static scaffold objects for Kabatepe.
+ * What Just Hit Me - static scaffold objects for Kabatepe.
  *
  * Plain script loaded after engine.js. Uses the engine's destructible props system.
  * Add, remove, or tune entries in Scaffold_PLACES to place more scaffolds.

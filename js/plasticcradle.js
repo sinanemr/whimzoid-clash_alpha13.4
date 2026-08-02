@@ -1,5 +1,5 @@
 /**
- * Whimzoid Clash — blue plastic CRADLES (fish crates) around the Kabatepe dive gear.
+ * What Just Hit Me — blue plastic CRADLES (fish crates) around the Kabatepe dive gear.
  * Plain <script>, loaded AFTER engine.js (uses ctx). Pure static decoration.
  *
  * ONE crate next to the regulator diver (js/regulator.js, world 845/270 — FOREGROUND, drawn in

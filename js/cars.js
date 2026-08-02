@@ -1,5 +1,5 @@
 /**
- * Whimzoid Clash — parked TRAFFIC + car-explosion event on the left road of Kabatepe.
+ * What Just Hit Me — parked TRAFFIC + car-explosion event on the left road of Kabatepe.
  * Plain <script>, loaded AFTER engine.js (uses GROUND, ctx, S, fighters, projectiles,
  * takeDamage, statusFloat, ringFx, spawnHitFx, particles, rand, shake, roundOver, tGlobal).
  * The parked jam is a fixed perspective table (host and guest draw the same cars); the

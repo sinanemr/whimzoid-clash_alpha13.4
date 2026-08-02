@@ -1,5 +1,5 @@
 /**
- * Whimzoid Clash — a shark FIN cruising the distant sea on the Kabatepe stage. Plain
+ * What Just Hit Me — a shark FIN cruising the distant sea on the Kabatepe stage. Plain
  * <script>, loaded AFTER engine.js (uses ctx, tGlobal). Pure decoration — drawn on the sea
  * behind the fighters. Its whole path is a deterministic function of tGlobal (no stored
  * state) so host and guest match with no sync: it surfaces, slowly swims across, then

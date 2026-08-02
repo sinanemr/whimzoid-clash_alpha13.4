@@ -1,4 +1,4 @@
-# Whimzoid Clash — Refactored (alpha 13.4)
+# What Just Hit Me — Refactored (alpha 13.4)
 
 **New in 13.4:** private **online 1v1** over a six-character room code
 (host-authoritative), and an **installable Windows desktop app** (Tauri 2) whose main
@@ -10,7 +10,7 @@ to build the installer + deploy the shared server, and
 is unchanged.
 
 A modular, editable restructuring of the single-file game
-`whimzoid-clash_alpha13.1.html` (which is preserved, untouched, one folder up).
+`what-just-hit-me_alpha13.1.html` (which is preserved, untouched, one folder up).
 
 Same game, same characters, same art, same combat — but the embedded base64 art
 is now real files, the CSS is split out, **each character is its own module**, and
@@ -55,7 +55,7 @@ every step and can be verified in a browser as it evolves. Where things stand no
 ## Project structure
 
 ```
-whimzoid-clash_alpha13.4/
+what-just-hit-me_alpha13.4/
 ├── RUN_GAME.html               # entry point; loads all scripts as plain <script> tags
 ├── README.md
 ├── package.json                # npm start -> node server/server.js (needs `ws`)
@@ -141,7 +141,7 @@ audio system.
   - `DEFAULT_SETTINGS` with five groups: `match`, `controls`, `visuals`,
     `accessibility`, `practice`.
   - Safe `loadSettings()` / `saveSettings()` to `localStorage` under
-    `whimzoid-clash-settings-v1`, with deep-merge onto defaults + `validateSettings()`
+    `what-just-hit-me-settings-v1`, with deep-merge onto defaults + `validateSettings()`
     (clamp/coerce every field). Unlimited round time is stored JSON-safely as the
     string `"unlimited"` and read back through `getRoundTimeValue()`.
   - `activeSettings` (in effect) vs `pendingSettings` (being edited).
@@ -291,7 +291,7 @@ rollback netcode (see the honest limitations at the end).
 npm install       # installs the one dependency, `ws`
 npm start         # -> node server/server.js
 ```
-It prints `Whimzoid Clash server running at http://localhost:8080` (port =
+It prints `What Just Hit Me server running at http://localhost:8080` (port =
 `process.env.PORT || 8080`). The root URL serves `RUN_GAME.html`.
 
 ### Test with two browser tabs

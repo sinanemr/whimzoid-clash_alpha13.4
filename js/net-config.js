@@ -1,5 +1,5 @@
 /**
- * Whimzoid Clash — production network configuration (SINGLE SOURCE OF TRUTH).
+ * What Just Hit Me — production network configuration (SINGLE SOURCE OF TRUTH).
  * Plain <script>, loaded BEFORE network-client.js / online-state.js / online-ui.js.
  *
  * This is the ONE place the client is told where the public multiplayer server is.
@@ -7,7 +7,7 @@
  *
  * ── Installed desktop build (Tauri) ────────────────────────────────────────────
  *   The developer sets `serverUrl` to the deployed public server, e.g.
- *     serverUrl: "wss://whimzoid-clash.onrender.com/ws"
+ *     serverUrl: "wss://what-just-hit-me.onrender.com/ws"
  *   The installed game then connects there automatically over secure WebSockets.
  *   Players never type or see this URL.
  *
@@ -21,7 +21,7 @@
 const NETWORK_CONFIG = {
   // Set this to your deployed server for the installed desktop build.
   // Accepts "wss://host" or "wss://host/ws" (the /ws path is added if missing).
-  serverUrl: "wss://whimzoid-clash-alpha13-4-1.onrender.com/ws",
+  serverUrl: "wss://what-just-hit-me-alpha13-4-1.onrender.com/ws",
   protocolVersion: 1,          // bumped only on a breaking wire-protocol change
   connectionTimeoutMs: 10000,  // how long to wait for connect + version handshake
   reconnectAttempts: 3         // connect retries before reporting failure

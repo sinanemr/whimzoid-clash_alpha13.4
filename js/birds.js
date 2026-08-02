@@ -1,5 +1,5 @@
 /**
- * Whimzoid Clash — ambient SEAGULLS flying across the Kabatepe sky. Plain <script>, loaded
+ * What Just Hit Me — ambient SEAGULLS flying across the Kabatepe sky. Plain <script>, loaded
  * AFTER engine.js (uses ctx, tGlobal, WORLD_W). Pure decoration — drawn in the sky behind
  * everything. Each bird's whole path is a deterministic function of tGlobal (no stored state),
  * so host and guest match with no sync. Each pass picks a fresh random height + direction.

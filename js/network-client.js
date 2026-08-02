@@ -1,5 +1,5 @@
 /**
- * Whimzoid Clash — WebSocket transport + protocol dispatch (client side).
+ * What Just Hit Me — WebSocket transport + protocol dispatch (client side).
  * Plain <script>, loaded after online-state.js, before online-ui.js.
  *
  * Responsibilities: build the ws URL from the page location, connect, send/

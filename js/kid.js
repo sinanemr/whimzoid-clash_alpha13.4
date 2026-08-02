@@ -1,5 +1,5 @@
 /**
- * Whimzoid Clash — background NPC for the Kabatepe stage: a kid sitting on top of the boat
+ * What Just Hit Me — background NPC for the Kabatepe stage: a kid sitting on top of the boat
  * eating from a snack box. Plain <script>, loaded AFTER engine.js (uses ctx, tGlobal). Pure
  * decoration — drawn in front of the boat but BEHIND the fighters; animation is driven by
  * the synced tGlobal so host and guest match (no sync).

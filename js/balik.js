@@ -1,5 +1,5 @@
 /**
- * Whimzoid Clash — background NPC for the Kabatepe stage: a guy who is balikci*/
+ * What Just Hit Me — background NPC for the Kabatepe stage: a guy who is balikci*/
 
 
 "use strict";

@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Core window permissions for Whimzoid Clash (needed for the EXIT button).",
+  "description": "Core window permissions for What Just Hit Me (needed for the EXIT button).",
   "windows": ["main"],
   "permissions": [
     "core:default",

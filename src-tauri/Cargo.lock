@@ -3839,8 +3839,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "whimzoid-clash"
-version = "13.4.0"
+name = "what-just-hit-me"
+version = "1.0.0"
 dependencies = [
  "serde",
  "serde_json",

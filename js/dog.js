@@ -1,5 +1,5 @@
 /**
- * Whimzoid Clash — roaming DOG hazard for the Kabatepe stage.
+ * What Just Hit Me — roaming DOG hazard for the Kabatepe stage.
  * Plain <script>, loaded AFTER engine.js (uses its globals: fighters, GROUND, WALL_L/R,
  * S, ctx, statusFloat, spawnHitFx, ringFx, roundOver, projectiles, tGlobal).
  *

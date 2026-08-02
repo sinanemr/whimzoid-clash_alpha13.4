@@ -1,5 +1,5 @@
 /**
- * Whimzoid Clash — backgammon TABLE (Blackgammon table_01) props on the Kabatepe stage.
+ * What Just Hit Me — backgammon TABLE (Blackgammon table_01) props on the Kabatepe stage.
  * Plain <script>, loaded AFTER engine.js (uses ctx). Pure static decoration, drawn with the ground
  * decor behind the fighters (and in FRONT of the chair, as if someone sits at it).
  * To add another table, just append an entry to Bgammon_PLACES.

@@ -1,6 +1,6 @@
 "use strict";
 /**
- * Whimzoid Clash — in-memory room manager for private 1v1 online play.
+ * What Just Hit Me — in-memory room manager for private 1v1 online play.
  *
  * Responsibilities: create/join two-player rooms, track host/guest sockets and
  * lobby state, validate room membership, and clean up on disconnect. Gameplay

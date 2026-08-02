@@ -1,6 +1,6 @@
 /**
  * Central game configuration — the values you are most likely to edit.
- * Every value below was verified against whimzoid-clash_alpha13.1.html.
+ * Every value below was verified against what-just-hit-me_alpha13.1.html.
  *
  * Loaded as a plain <script> (not an ES module) so the game runs by double-clicking
  * index.html (file://) as well as from a web server. It defines GAME_CONFIG (alias
