@@ -18,11 +18,18 @@
 
   <!-- TITLE -->
   <section id="title" class="screen active">
+    <!-- logo/characters come from the background artwork (assets/ui/menu_bg.png) -->
     <h1>WHAT JUST<br><span>HIT ME?</span></h1>
-    <button class="big" id="startBtn">LOCAL PLAY</button>
-    <button class="big" id="onlinePlayBtn">MULTIPLAYER</button>
-    <button class="big" id="titleSettingsBtn">SETTINGS</button>
-    <button class="big" id="exitBtn">EXIT</button>
+    <div id="titleMenu" class="menuPanel">
+      <div class="menuSkull">&#9760;</div>
+      <button class="big" id="startBtn">LOCAL PLAY</button>
+      <button class="big" id="onlinePlayBtn">MULTIPLAYER</button>
+      <button class="big" id="titleSettingsBtn">SETTINGS</button>
+      <button class="big" id="exitBtn">EXIT</button>
+      <div class="menuBanner">&#9760;</div>
+    </div>
+    <div class="menuVersion">v1.0.0</div>
+    <div class="menuTagline">WHOSE BODY<br>IS NEXT?</div>
     <!-- Control labels are generated from js/controls.js by main.js (no hardcoded keys). -->
     <div id="titleCtrlHelp" class="ctrlHelp"></div>
   </section>
@@ -31,6 +38,17 @@
   <section id="select" class="screen">
     <h2>CHOOSE YOUR FIGHTER</h2>
     <div class="hint">Click once for Player 1 (teal) · click again for Player 2 (crimson)</div>
+    <div id="selPreview">
+      <div class="prevSide">
+        <canvas id="prev1" width="170" height="230"></canvas>
+        <div class="prevName" id="prevName1">PLAYER 1</div>
+      </div>
+      <div id="vsSign">VS</div>
+      <div class="prevSide">
+        <canvas id="prev2" width="170" height="230"></canvas>
+        <div class="prevName" id="prevName2">PLAYER 2</div>
+      </div>
+    </div>
     <div id="roster"></div>
     <div id="selInfo">
       <div class="bio" id="bio1"><b>PLAYER 1</b>Select a fighter…</div>
@@ -138,6 +156,12 @@
 <script src="./js/trashbin.js"></script>
 <!-- plastic chairs (decor only; needs engine globals) -->
 <script src="./js/seat.js"></script>
+<!-- soda patio umbrellas (decor only; needs engine globals) -->
+<script src="./js/sodaumbrella.js"></script>
+<!-- backgammon tables (decor only; needs engine globals) -->
+<script src="./js/blackgammon.js"></script>
+<!-- wooden stools (decor only; needs engine globals) -->
+<script src="./js/stool.js"></script>
 <!-- ambient seagulls in the sky (decor only; needs engine globals) -->
 <script src="./js/birds.js"></script>
 <!-- shark fin in the distant sea (decor only; needs engine globals) -->

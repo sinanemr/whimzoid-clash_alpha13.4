@@ -15,7 +15,7 @@ const Seat_SCALE = 0.75;   // resize all chairs together (tuning)
 
 // x/y = ground-contact point (world), w = width in world px (sized to depth), rot tilt, flip mirror.
 const Seat_PLACES = [
-  { x: 340, y: 203, w: 26, flip: true, rot: 0.02 }   // right of the security cabinet, facing out
+  { x: 335, y: 203, w: 26, flip: true, rot: 0.02 }   // right of the security cabinet, facing out
 ];
 
 /* World-space draw (called from renderGame, with the ground decor, behind the fighters). */

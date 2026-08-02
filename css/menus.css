@@ -1,15 +1,46 @@
 /* Title screen, pause menu, victory (post-fight) screen, shared menu buttons. */
 
-/* ---------- TITLE ---------- */
-#title{text-align:center; padding:40px 0;}
-#title h1{
-  font-family:'Press Start 2P',monospace; font-size:38px; line-height:1.25; color:var(--gold);
-  text-shadow:3px 3px 0 #7a4b00, 6px 6px 0 rgba(0,0,0,.55);
+/* ---------- TITLE (illustrated menu; logo/characters come from the background artwork) ---------- */
+#title{text-align:center;}
+#title h1, #title .sub, #title .lore, #title .ctrlHelp{display:none;}   /* baked into the art / hidden for the clean look */
+#title.screen.active{display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; padding:0;}
+/* full-bleed menu artwork — only rendered while the title screen is showing */
+#title.screen.active::before{
+  content:""; position:fixed; inset:0; z-index:-1;
+  background:url(../assets/ui/menu_bg.png) center/cover no-repeat,
+             radial-gradient(ellipse 130% 90% at 50% 10%, #4a2f66, #140f2e 70%, #0a0818);
 }
-#title h1 span{color:var(--crimson); text-shadow:3px 3px 0 #6d0f19, 6px 6px 0 rgba(0,0,0,.55);}
-#title .sub{font-family:'Press Start 2P',monospace; margin-top:16px; color:var(--teal); font-size:9px; letter-spacing:.2em;}
-#title .lore{max-width:600px; margin:24px auto 0; color:#bdb2d8; font-size:13.5px; line-height:1.7;}
-#orbCanvas{image-rendering:pixelated; width:96px; height:96px; margin:16px auto 4px; display:block;}
+/* the centred menu box (chained/framed panel with skull accents) */
+.menuPanel{
+  position:relative; display:flex; flex-direction:column; gap:3px; width:300px; padding:26px 20px 30px;
+  transform:translateY(20vh);   /* drop the panel below the title logo (raise/lower this to taste) */
+  background:linear-gradient(180deg, rgba(30,18,52,.90), rgba(14,9,28,.94));
+  border:3px solid #241640; border-radius:7px;
+  box-shadow:0 0 0 2px #6b3f86, 0 0 0 5px #140c26, 0 14px 44px rgba(0,0,0,.6), inset 0 0 26px rgba(130,70,150,.22);
+}
+.menuSkull{position:absolute; top:-15px; left:50%; transform:translateX(-50%); font-size:22px; color:#d6c8ec; text-shadow:0 2px 5px #000;}
+.menuPanel button.big{
+  font-family:'Press Start 2P',monospace; font-size:15px; letter-spacing:.06em; width:100%; margin:0;
+  padding:13px 10px; text-align:center; color:#cbbfe4; cursor:pointer; transition:all .09s; position:relative;
+  background:linear-gradient(180deg, rgba(60,40,86,.5), rgba(22,13,38,.55));
+  border:1px solid rgba(150,100,180,.28); border-radius:3px; box-shadow:none;
+}
+.menuPanel button.big:hover, .menuPanel button.big:focus-visible{
+  color:#ff54da; outline:none; border-color:#c766de; text-shadow:0 0 9px rgba(255,84,218,.65);
+  background:linear-gradient(180deg, rgba(92,42,112,.62), rgba(42,16,60,.72));
+}
+.menuPanel button.big:hover::before, .menuPanel button.big:focus-visible::before{content:"\2620"; position:absolute; left:9px; top:50%; transform:translateY(-50%); color:#ff54da; font-size:12px;}
+.menuPanel button.big:hover::after, .menuPanel button.big:focus-visible::after{content:"\2620"; position:absolute; right:9px; top:50%; transform:translateY(-50%); color:#ff54da; font-size:12px;}
+.menuPanel button.big:active{transform:translateY(2px);}
+.menuBanner{
+  position:absolute; bottom:-24px; left:50%; transform:translateX(-50%); width:32px; height:30px;
+  background:linear-gradient(180deg,#6a3488,#3f1f58); color:#e0c4f0; font-size:12px;
+  clip-path:polygon(0 0,100% 0,100% 68%,50% 100%,0 68%);
+  display:flex; align-items:flex-start; justify-content:center; padding-top:4px;
+  box-shadow:0 4px 9px rgba(0,0,0,.55);
+}
+.menuVersion{position:fixed; left:14px; bottom:10px; font-family:'Press Start 2P',monospace; font-size:9px; color:#8064a6; z-index:2;}
+.menuTagline{position:fixed; right:18px; bottom:16px; font-family:'Press Start 2P',monospace; font-size:12px; line-height:1.55; text-align:right; color:#c04fe0; text-shadow:0 2px 5px #000; transform:rotate(-4deg); z-index:2;}
 button.big{
   font-family:'Press Start 2P',monospace; font-size:14px; padding:16px 36px; margin-top:28px;
   background:var(--crimson); color:#fff; border:none; cursor:pointer;

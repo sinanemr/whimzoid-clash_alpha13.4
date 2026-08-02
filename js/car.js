@@ -13,9 +13,12 @@ const Car_DIR = "assets/stages/kabatepe/Static/Car/";
 const Car_IMG = {};
 ["Car_side", "Car_side_destroyed"].forEach(k => { const im = new Image(); im.src = Car_DIR + k + ".png"; Car_IMG[k] = im; });
 
-// Measured content in the 642px source: centre x, wheel bottom, roof top, body left/right/top.
+// Measured content in the 642px CLEAN sprite: centre x, wheel bottom, roof top, body left/right/top.
 const Car_IMG_W = 642;
-const Car_CX = 321, Car_BOTTOM = 641, Car_ROOF = 418, Car_LEFT = 22, Car_RIGHT = 620, Car_TOP = 412;
+const Car_CX = 320, Car_BOTTOM = 441, Car_ROOF = 218, Car_LEFT = 21, Car_RIGHT = 619, Car_TOP = 211;
+// The DESTROYED sprite sits lower in its own canvas — its own wheel-bottom/centre so the wreck lines
+// up on the same ground line as the clean car when it swaps in.
+const Car_D_CX = 314, Car_D_BOTTOM = 641;
 // Cabin ROOF span (image px) — the flat greenhouse you actually stand on, NOT the sloped hood that
 // runs off to the right. Measured from the sprite: roof plateau ≈ x90..410 across the top rows.
 // The walk-platform uses this (not the full body) so a fighter stands on the roof like the blue
@@ -24,7 +27,7 @@ const Car_ROOF_L = 90, Car_ROOF_R = 410;
 // HOOD / cowling (image px) — the lower flat deck at the FRONT (right) of the car, below the roof.
 // Measured surface: x≈445..585 sits at y≈495..510 (it steps down from the windshield). A second,
 // lower platform here lets fighters stand on the hood and step up onto the roof.
-const Car_HOOD_L = 445, Car_HOOD_R = 585, Car_HOOD = 498;
+const Car_HOOD_L = 445, Car_HOOD_R = 585, Car_HOOD = 298;
 
 // --- placement / size (world coords) — TUNE (middle, in front of the boats) ---
 const Car_X = 1140;      // world x
@@ -86,8 +89,10 @@ function drawCarProp(pr, t) {
   ctx.save();
   ctx.translate(pr.anchorX + shk, pr.baseY);
   const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = true;
+  // each sprite uses its OWN wheel-bottom/centre so both sit on the same ground line
+  const acx = pr.wrecked ? Car_D_CX : Car_CX, abot = pr.wrecked ? Car_D_BOTTOM : Car_BOTTOM;
   if (img && img.complete && img.naturalWidth > 0) {
-    ctx.drawImage(img, -Car_CX * scale, -Car_BOTTOM * scale, Car_DRAW, Car_DRAW);
+    ctx.drawImage(img, -acx * scale, -abot * scale, Car_DRAW, Car_DRAW);
   } else {
     ctx.fillStyle = pr.wrecked ? "#5a2020" : "#b0201f"; ctx.fillRect(-pr.w / 2, -pr.h, pr.w, pr.h);
   }

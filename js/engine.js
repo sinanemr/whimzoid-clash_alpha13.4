@@ -159,7 +159,7 @@ const IMG_SPRITES={};
    setTimeout(()=>{if(!running)return;const foe=other(f);
     if(Math.abs(foe.x-f.x)<70){foe.takeDamage(55,150,Math.sign(foe.x-f.x)||f.facing,{melee:true,skill:true,col:"#f28022",fx:"#f28022"});
      foe.weakenT=3;foe.weakenAmt=.10;statusFloat(foe,"WEAKENED","#f2b632");}
-    hitProps(f.x,1,70,55,f);hitProps(f.x,-1,70,55,f);},140);}];
+    hitProps(f.x,1,70,55,f,undefined,true);hitProps(f.x,-1,70,55,f,undefined,true);},140);}];
 
 /* ==================== MASTER AKIRA ==================== */
  CHARS.push({id:"akira", name:"Master Akira", ep:"Sage of the Mountain Temple",
@@ -359,8 +359,9 @@ function attackAlreadyHit(pr,owner){
  if(pr._atkSeq[slot]===seq)return true;
  pr._atkSeq[slot]=seq;return false;
 }
-function damageProp(pr,dmg,owner){
+function damageProp(pr,dmg,owner,melee){
  if(pr.hp<=0)return;
+ if(pr.kind==="scaffold"&&!melee)return;   /* scaffolds take ONLY melee — ranged shots pass through */
  if(attackAlreadyHit(pr,owner))return;    /* one basic attack / one skill = one hit (multi-hits count once) */
  pr.hp-=(pr.kind==="co2tank")?1:dmg;       /* co2 tank breaks in a fixed number of HITS, not raw damage */
  const pb=propBaseY(pr),cx=pr.x+pr.w/2,cy=pb-pr.h/2;
@@ -384,12 +385,13 @@ function damageProp(pr,dmg,owner){
   if(owner&&owner.alive){owner.gainMeter(8);floaters.push({x:cx,y:pb-pr.h-8,txt:"+8 ENERGY",t:0,col:"#f2b632",size:6});}
  }
 }
-/* Checks a melee/ranged hit's area against nearby props and platforms and damages any that overlap. */
-function hitProps(x,facing,range,dmg,owner,y){
+/* Checks a melee/ranged hit's area against nearby props and platforms and damages any that overlap.
+   Pass melee=true for close-range hits; scaffolds only take melee (ranged AoE passes through them). */
+function hitProps(x,facing,range,dmg,owner,y,melee){
  if(y===undefined)y=GROUND-S(30);
  for(const pr of props.slice()){
   const pb=propBaseY(pr),cx=pr.x+pr.w/2;
-  if(pr.hp>0&&Math.abs(cx-x)<range&&(cx-x)*facing>-8&&y>pb-pr.h-12&&y<pb+12)damageProp(pr,dmg,owner);  /* hp>0: attacks pass THROUGH a wrecked car */
+  if(pr.hp>0&&Math.abs(cx-x)<range&&(cx-x)*facing>-8&&y>pb-pr.h-12&&y<pb+12)damageProp(pr,dmg,owner,melee);  /* hp>0: attacks pass THROUGH a wrecked car */
  }
  for(const pl of plats.slice()){
   if(pl.hp===undefined)continue;
@@ -651,7 +653,7 @@ function meleeHit(f,{range=48,dmg=8,kb=120,delay=110,opts={},onHit=null}){
    if(opts.skill)addChi(f,15);
    if(onHit)onHit(foe);
   }
-  hitProps(f.x,f.facing,range,dmg,f,f.centerY);
+  hitProps(f.x,f.facing,range,dmg,f,f.centerY,true);   /* melee skill — can hit scaffolds */
  },delay);
 }
 
@@ -818,7 +820,7 @@ function tryAttack(f){
     foe.stun=Math.max(foe.stun,0.45);           /* brief hitstun so the knockback reads as a stagger */
     for(let i=0;i<10;i++)particles.push({x:foe.x,y:foe.centerY,vx:f.facing*rand(120,300),vy:rand(-120,40),r:rand(1.5,3),col:["#f2c230","#e8b52e","#d99a1e"][i%3],t:0,life:rand(.3,.55),dough:true});}
   }
-  hitProps(f.x,f.facing,44,f.d.power,f,f.centerY);
+  hitProps(f.x,f.facing,44,f.d.power,f,f.centerY,true);   /* basic attack (melee) — can hit scaffolds */
  },110);
 }
 /* Attempts to cast an ability (slot i): blocked while casting/blocking/silenced/locked or on cooldown; otherwise starts its cooldown and runs ABILITIES[id][i]. */
@@ -1266,7 +1268,7 @@ function updateProjectiles(dt){
    let smashed=false;
    for(const pr of props.slice()){
     const pb=propBaseY(pr);
-    if(pr.hp>0&&p.x>pr.x-2&&p.x<pr.x+pr.w+2&&p.y>pb-pr.h-12&&p.y<pb+12){damageProp(pr,p.dmg||20,p.owner);smashed=true;break;}  /* hp>0: shots pass THROUGH a wrecked car */
+    if(pr.hp>0&&pr.kind!=="scaffold"&&p.x>pr.x-2&&p.x<pr.x+pr.w+2&&p.y>pb-pr.h-12&&p.y<pb+12){damageProp(pr,p.dmg||20,p.owner);smashed=true;break;}  /* shots pass THROUGH wrecked cars AND scaffolds */
    }
   if(!smashed)for(const pl of plats.slice()){
    if(pl.hp===undefined)continue;
@@ -2509,7 +2511,10 @@ function renderGame(){
  if(typeof drawRope==="function")drawRope();        /* coiled mooring ropes on the pier (js/rope.js) — behind fighters */
  if(typeof drawPallets==="function")drawPallets();  /* wooden pallets in the otoparks (js/pallet.js) — behind fighters */
  if(typeof drawTrashbins==="function")drawTrashbins();  /* trashbins (js/trashbin.js) — behind fighters */
+ if(typeof drawSodaUmbrellas==="function")drawSodaUmbrellas();  /* soda umbrellas (js/sodaumbrella.js) — behind the chairs */
  if(typeof drawSeats==="function")drawSeats();  /* plastic chairs (js/seat.js) — behind fighters */
+ if(typeof drawBlackgammonTables==="function")drawBlackgammonTables();  /* backgammon tables (js/blackgammon.js) — in front of the chair */
+ if(typeof drawStools==="function")drawStools();  /* wooden stools (js/stool.js) — in front of the table */
  /* compressor NPC disabled for now — code kept in js/compressor.js; re-enable by uncommenting:*/
  if(typeof drawCompMech==="function")drawCompMech();
  if(typeof drawCradleBehind==="function")drawCradleBehind();   /* 2 stacked crates by the compressor (js/plasticcradle.js) — behind fighters */
@@ -2601,19 +2606,57 @@ function drawPortrait(cnv,d){
   for(let j=0;j<hgt;j++){g.fillStyle=j===hgt-1?"#ffd23f":"#f28022";
    g.fillRect(ox+32+dx*2-2,oy-6-j*4,4,4);}});}
 }
-/* Builds the character-select grid: one clickable card per entry in CHARS, each showing its portrait, name, and episode subtitle. */
+/* Draws just the HEAD of a fighter into a small roster box: the idle sprite is zoomed so the top
+   ~46% (head + shoulders) fills the box, top-aligned. Falls back to the pixel grid's top rows. */
+function drawHead(cnv,d){
+ const g=cnv.getContext("2d");g.imageSmoothingEnabled=false;g.clearRect(0,0,cnv.width,cnv.height);
+ const soon=COMING_SOON.includes(d.id);
+ const img=IMG_SPRITES[d.id];
+ if(img){const fr=img.idle;
+  const HEAD_FRAC=0.40;                        // fraction of the sprite (from the top) that fills the box — lower = closer on the head
+  const sc=cnv.height/(fr.h*HEAD_FRAC);
+  const w=fr.w*sc,h=fr.h*sc;
+  const dx=Math.round((cnv.width-w)/2),dy=2;   // centred + top-aligned so the head shows
+  const draw=()=>{g.imageSmoothingEnabled=false;if(soon)g.filter="grayscale(1) brightness(0.6)";
+   g.drawImage(fr.img,dx,dy,w,h);g.filter="none";
+   if(soon){g.fillStyle="rgba(10,7,22,0.45)";g.fillRect(0,0,cnv.width,cnv.height);}};
+  if(fr.img.complete&&fr.img.naturalWidth>0)draw();else fr.img.onload=draw;
+  return;}
+ const spr=SPRITES[d.id];if(!spr)return;const cell=Math.max(2,Math.floor(cnv.width/16));
+ const ox=Math.round((cnv.width-16*cell)/2),rows=Math.min(spr.g.length,Math.ceil(cnv.height/cell));
+ for(let r=0;r<rows;r++){const row=spr.g[r];for(let c=0;c<16;c++){const ch=row[c];if(ch===".")continue;const col=spr.pal[ch];if(!col)continue;g.fillStyle=col;g.fillRect(ox+c*cell,2+r*cell,cell,cell);}}
+}
+/* Draws a fighter's FULL idle sprite into a big preview canvas, standing on the bottom, centred.
+   `flip` mirrors it (used for Player 2 so the two face each other). Empty if no fighter given. */
+function drawFullIdle(cnv,d,flip){
+ const g=cnv.getContext("2d");g.imageSmoothingEnabled=false;g.clearRect(0,0,cnv.width,cnv.height);
+ if(!d)return;
+ const img=IMG_SPRITES[d.id];
+ if(img){const fr=img.idle;
+  const sc=Math.min((cnv.width-12)/fr.w,(cnv.height-8)/fr.h);
+  const w=fr.w*sc,h=fr.h*sc;
+  const dx=Math.round((cnv.width-w)/2),dy=Math.round(cnv.height-h-2);
+  const draw=()=>{g.imageSmoothingEnabled=false;g.save();
+   if(flip){g.translate(cnv.width,0);g.scale(-1,1);}
+   g.drawImage(fr.img,dx,dy,w,h);g.restore();};
+  if(fr.img.complete&&fr.img.naturalWidth>0)draw();else fr.img.onload=draw;
+  return;}
+ const spr=SPRITES[d.id];if(!spr)return;const rows=spr.g.length;
+ const cell=Math.max(1,Math.min(Math.floor((cnv.width-12)/16),Math.floor((cnv.height-8)/rows)));
+ const ox=Math.round((cnv.width-16*cell)/2),oy=Math.round(cnv.height-rows*cell-2);
+ for(let r=0;r<rows;r++){const row=spr.g[r];for(let c=0;c<16;c++){const ch=row[c];if(ch===".")continue;const col=spr.pal[ch];if(!col)continue;g.fillStyle=col;g.fillRect(ox+c*cell,oy+r*cell,cell,cell);}}
+}
+/* Builds the character-select grid: one clickable HEAD box per entry in CHARS (name shows in the preview). */
 function buildRoster(){
  const rEl=document.getElementById("roster");rEl.innerHTML="";
  CHARS.forEach(d=>{
   const card=document.createElement("div");card.className="card";card.dataset.id=d.id;
-  const cn=document.createElement("canvas");cn.width=116;cn.height=120;
+  const cn=document.createElement("canvas");cn.width=72;cn.height=80;
   card.appendChild(cn);
-  const nm=document.createElement("div");nm.className="nm";nm.textContent=d.name;card.appendChild(nm);
-  const ep=document.createElement("div");ep.className="ep";ep.textContent=d.ep;card.appendChild(ep);
   if(!COMING_SOON.includes(d.id))card.addEventListener("click",()=>pick(d.id));
   else card.classList.add("soon");   /* not selectable */
   rEl.appendChild(card);
-  drawPortrait(cn,d);
+  drawHead(cn,d);
  });
 }
 /* Handles a roster-card click: fills the P1 slot first, then P2; clicking a third time restarts the pick from P1. */
@@ -2643,6 +2686,13 @@ function refreshSelect(){
  const d1=CHARS.find(c=>c.id===p1Pick),d2=CHARS.find(c=>c.id===p2Pick);
  document.getElementById("bio1").innerHTML=bioHTML("PLAYER 1",d1,AB_LABELS.p1,ULT_KEY.p1);
  document.getElementById("bio2").innerHTML=bioHTML(cpuMode?"OPPONENT (CPU)":"PLAYER 2",d2,AB_LABELS.p2,ULT_KEY.p2);
+ /* big full-idle previews (P2 flipped so they face off) + names */
+ const pv1=document.getElementById("prev1"),pv2=document.getElementById("prev2");
+ if(pv1)drawFullIdle(pv1,d1,false);
+ if(pv2)drawFullIdle(pv2,d2,true);
+ const pn1=document.getElementById("prevName1"),pn2=document.getElementById("prevName2");
+ if(pn1)pn1.textContent=d1?d1.name.toUpperCase():"PLAYER 1";
+ if(pn2)pn2.textContent=d2?d2.name.toUpperCase():(cpuMode?"CPU":"PLAYER 2");
  document.getElementById("fightBtn").disabled=!(p1Pick&&p2Pick);
 }
 /* =============== SCREEN NAV / WIRING =============== */

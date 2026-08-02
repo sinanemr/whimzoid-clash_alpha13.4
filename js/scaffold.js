@@ -154,7 +154,7 @@ function scaffoldCollapseFx(pr) {
 function scaffoldBreakLinked(scaffold, owner) {
   for (const upper of props.slice()) {
     if (upper.kind === "scaffold" && upper.support && upper.support.includes(scaffold.scaffoldId) && upper.hp > 0) {
-      damageProp(upper, upper.hp + 9999, null);
+      damageProp(upper, upper.hp + 9999, null, true);   /* melee=true so the linked collapse still passes the scaffold gate */
     }
   }
 }
