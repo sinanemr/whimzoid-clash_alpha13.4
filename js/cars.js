@@ -302,8 +302,8 @@ function updateCars(dt) {
   // blast knockdown: once a flung fighter lands, pin it down and stun for ~1s on the ground
   if (typeof fighters !== "undefined") for (const f of fighters) {
     if (f._blastKd && f.alive && f.onGround) {
-      f._blastKd = false; f.vx = 0; f.koPose = 1.0;
-      if (typeof applyStun === "function") applyStun(f, 1.0); else f.stun = Math.max(f.stun || 0, 1.0);
+      f._blastKd = false; f.koPose = 1.0;
+      f.stun = Math.max(f.stun || 0, 1.0);   /* stun WITHOUT zeroing vx (applyStun would) so he keeps sliding backward, then friction stops him */
     }
   }
   // hit detection: a fighter attacking LEFT into the wall / a damaging projectile reaching it

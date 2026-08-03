@@ -429,6 +429,7 @@ class Fighter{
   this.blocking=false; this.crouching=false; this.onGround=true; this.jumps=0; this.airSkillT=0; this.jumpWindup=0; this.alive=true;
   this.agilityT=0; this.groundBounce=false;   /* Satori: Ninja Agility buff + air-combo ground bounce */
   this.kbT=0; this.kbLandT=0;   /* knockback animation state */
+  this.airAtkN=0;   /* air basic-attack counter (max 3 per jump) */
   this.flyT=4; this.flyCd=0; this.flying=false; this._wingsFull=true;
   this._arcT=0; this._sunT=0; this._hungerT=0; this._arcAmt=0;
   this.healBlock=0; this.skStage=0; this.frenzy=0; this.diveT=0; this.grabT=0; this.slamT=0;
@@ -542,7 +543,7 @@ class Fighter{
   /* ----- energy: attacker only, landed non-DoT hits ----- */
   if(!opts.dot&&att&&att.alive)att.gainMeter(3+dmg*0.08);
   this.hitFlash=blocked?0.05:0.12;
-  if(this.windmill<=0){this.vx=dir*kb; if(kb>175&&!blocked&&!opts.noPop){this.vy=-130; this.onGround=false; if(IMG_SPRITES[this.d.id]&&IMG_SPRITES[this.d.id].kb1){this.kbT=1;this.kbLandT=-1;}}}   /* launched -> knockback animation */
+  if(this.windmill<=0){this.vx=dir*kb; if(kb>175&&!blocked&&!opts.noPop){this.vy=-Math.min(240,120+kb*0.22); this.onGround=false; if(IMG_SPRITES[this.d.id]&&IMG_SPRITES[this.d.id].kb1){this.kbT=1;this.kbLandT=-1;}}}   /* launched: arc back (higher for bigger knockback) -> knockback animation */
   floaters.push({x:this.x,y:this.y-64,txt:blocked?"BLOCK":(crit?"CRIT "+dmg:""+dmg),t:0,
    col:blocked?"#9d92c2":(crit?"#ffd23f":(opts.col||"#ffffff")),size:blocked?6:(crit||dmg>=55?10:7)});
   if(!blocked&&dmg>=20) shake=Math.max(shake,dmg>=55?0.5:0.25);
@@ -795,7 +796,7 @@ function readInput(f,dt){
   if(mv!==0)f.facing=mv>0?1:-1;
   if(IN.down("jump")&&(f.onGround||((f.d.id==="necaati"||f.d.id==="satori"||f.d.id==="agron")&&f.jumps<2))){
    if(f.onGround){if(f.jumpWindup<=0)f.jumpWindup=JUMP_WINDUP;}   /* start the GROUND wind-up; the launch fires when it ends */
-   else if(f.jumps<2){f.vy=-f.d.jump*.85;f.jumps=2;f.airSkillT=0;f.jumpT=0;   /* double jump cancels the air-skill window */
+   else if(f.jumps<2){f.vy=-f.d.jump*.85;f.jumps=2;f.airSkillT=0;f.jumpT=0;f.airAtkN=0;   /* double jump cancels the air-skill window + refreshes the 3 air attacks */
     if(IMG_SPRITES[f.d.id]&&IMG_SPRITES[f.d.id].dblfx1)groundFx.push({id:f.d.id,x:f.x,y:f.y,t:0,facing:f.facing});   /* energy burst stays at the take-off point */
     else ringFx(f.x,f.y,f.d.id==="agron"?"#e2384a":"#3fd8c7",22);}
    IN.clear("jump");
@@ -819,11 +820,13 @@ function tryAttack(f){
  if(f.state==="attack"||f.state==="special"||f.blocking)return;
  if(f.disarm>0){/* LIMB HIJACK: normal attacks disabled (skills & Ult still work) */
   statusFloat(f,"CAN'T ATTACK","#b36bff");return;}
- f.skillContext=fighterContext(f);   /* air/crouch/ground basic attack — air works anytime airborne (same swing for now) */
+ f.skillContext=fighterContext(f);   /* air/crouch/ground basic attack */
+ if(f.skillContext==="air"&&(f.airAtkN||0)>=3)return;   /* air combo is 3 hits — after that he falls & can't attack until landing */
  /* reset the combo chain if too long since the last swing (so it reliably goes 1->2->3) */
  if((tGlobal-(f.lastAction||0))>0.8){f._atkAlt=true;if(f.d.id==="necmi"||f.d.id==="satori")f._atkStep=0;}   /* stale combo -> restart at hit 1 */
  f.state="attack";f.t=0;f.lastAction=tGlobal;f._atkAlt=!f._atkAlt;f._atkStep=(f._atkStep+1)%64;f.poseSkill=-1;
  f.atkHit=((f._atkStep-1)%3+3)%3;   /* 3-hit combo index (0,1,2); hit 3 (=2) is the HEAVY */
+ if(f.skillContext==="air"){f.atkHit=Math.min(f.airAtkN||0,2);f.airAtkN=(f.airAtkN||0)+1;}   /* AIR combo: own 1->2->3 counter */
  const _sid=onlineSessionId,_rid=onlineRoundId;   /* online: ignore this delayed hit if the round/session moved on */
  setTimeout(()=>{if(!running||onlineCallbackStale(_sid,_rid))return;
   if(misses(f))return;
@@ -949,7 +952,7 @@ function updateFighter(f,dt){
   if(activeSettings.practice.energy==="infinite")f.meter=100;
  }
  if(f.frozen>0){f.frozen-=dt;return;}
- if(f.stun>0){f.stun-=dt;f.vx*=Math.pow(.02,dt);f.x+=f.vx*dt;}
+ if(f.stun>0){f.stun-=dt;if(f.kbT>0&&!f.onGround)f.x+=f.vx*dt;else{f.vx*=Math.pow(.02,dt);f.x+=f.vx*dt;}}   /* a knockback flight keeps its horizontal speed (flies back) */
  if(f.confuse>0)f.confuse-=dt;
  if(f.silence>0)f.silence-=dt;
  if(f.shield>0)f.shield-=dt;
@@ -1151,9 +1154,10 @@ function updateFighter(f,dt){
  f.crouchT=f.crouching?(f.crouchT||0)+dt:0;   /* time spent crouching -> drives the down-into-crouch animation */
  f.downT=(!f.alive||f.koPose>0)?(f.downT||0)+dt:0;   /* time knocked down OR KO'd -> drives the ko -> ko2 sequence */
  /* KNOCKBACK animation: kb1 held while airborne; on landing kb2 (down) -> kb3 (get up), held until he can act again (no re-trigger) */
- if(f.kbT>0){if(!f.onGround)f.kbLandT=-1;else{if(f.kbLandT<0)f.kbLandT=0;else f.kbLandT+=dt;
+ if(f.kbT>0){if(!f.onGround||Math.abs(f.vx)>40)f.kbLandT=-1;else{if(f.kbLandT<0)f.kbLandT=0;else f.kbLandT+=dt;   /* kb1 lasts while flying OR sliding back on the ground */
   if((f.kbLandT>0.45&&f.stun<=0&&f.koPose<=0)||f.kbLandT>1.5)f.kbT=0;}}
  f.jumpT=f.onGround?0:(f.jumpT||0)+dt;        /* time airborne -> drives the leap frame */
+ if(f.onGround)f.airAtkN=0;                    /* reset the air-combo counter on the ground */
  if(f.landT>0)f.landT-=dt;                     /* landing-pose timer */
  if(f.jumpWindup>0){f.jumpWindup-=dt;if(f.jumpWindup<=0){f.jumpWindup=0;   /* wind-up finished -> LAUNCH */
   f.vy=-f.d.jump;f.onGround=false;f.jumps=1;f.airSkillT=AIR_SKILL_WINDOW;f.jumpT=0;}}
@@ -1168,7 +1172,7 @@ function updateFighter(f,dt){
   if(f.armor<=0){if(!f.guardBroken){f.guardBroken=true;f.blocking=false;statusFloat(f,"GUARD BREAK","#e2384a");}}
   else if(f.armor>=f.maxArmor*0.25)f.guardBroken=false;
  }
- if(f.state==="attack"&&f.t>(f.d.id==="agron"&&f.frenzy>0?.27:(f.d.id==="satori"&&!f.onGround?.22:(f.d.id==="satori"&&f.atkHit===2&&f.onGround?(f.crouching?.34:.42):.3)))*(f.agilityT>0?.9:1))f.state="idle";   /* Satori air attacks quick; Ninja Agility = +attack speed */
+ if(f.state==="attack"&&f.t>(f.d.id==="satori"?(!f.onGround?.22:(f.atkHit===2?(f.crouching?.30:.32):(f.crouching?.27:.22))):(f.d.id==="agron"&&f.frenzy>0?.27:.3))*(f.agilityT>0?.9:1))f.state="idle";   /* Satori basics are snappy; Ninja Agility = +attack speed */
  if(f.state==="special"&&f.t>.45&&!(f.d.id==="notalk"&&f.windmill>0)&&!(f.d.id==="munevver"&&f.skillAT>0)&&!(f.d.id==="necmi"&&(f.skillAT>0||f.skillBT>0))&&!(f.d.id==="haydar"&&(f.skillAT>0||f.skillBT>0||f.ultCharging))&&!(f.d.id==="putuk"&&(f.counterT>0||f._counterHitT>0)))f.state="idle";
  /* RELENTLESS MARCH — uninterruptible advance: catch the foe and DRAG them along */
  if(f.d.id==="notalk"&&f.windmill>0){
@@ -1876,9 +1880,9 @@ function drawFighter(f,t){
    fr=cyc[idx];
   }
   else if(!f.alive&&img.ko)fr=(img.ko2&&(f.downT||0)>0.12)?img.ko2:img.ko;   /* KO sequence: ko (impact) -> ko2 (grounded), held */
-  else if(f.kbT>0&&img.kb1){   /* KNOCKBACK (launched / knocked down, NOT defeated): kb1 fly -> kb2 down -> kb3 get up */
-   if(!f.onGround)fr=img.kb1;                              /* in the air: HOLD kb1 until he lands */
-   else if((f.kbLandT||0)<0.30)fr=(img.kb2||img.kb1);      /* down on the ground */
+  else if(f.kbT>0&&img.kb1){   /* KNOCKBACK (launched / knocked down, NOT defeated): kb1 flying+sliding back -> kb2 down -> kb3 get up */
+   if((f.kbLandT||0)<0)fr=img.kb1;                         /* still flying OR sliding backwards */
+   else if((f.kbLandT||0)<0.30)fr=(img.kb2||img.kb1);      /* settled on the ground: down */
    else fr=(img.kb3||img.kb2||img.kb1);                    /* getting back up (final part) */
   }
   else if(f.koPose>0&&img.ko&&!img.kb1)fr=(img.ko2&&(f.downT||0)>0.12)?img.ko2:img.ko;   /* fallback: chars WITHOUT knockback art */
@@ -1945,7 +1949,7 @@ function drawFighter(f,t){
   else if(f.landT>0&&f.onGround&&f.alive&&img.landing)fr=img.landing;   /* brief touchdown pose */
   else if(f.d.id==="satori"&&f.state==="attack"&&img.atk1a){
    /* 3-HIT COMBO (STANDING or CROUCHING): hit a (wind-up) -> b (strike); hit 3 (=2) is the heavy */
-   const hi=f.atkHit||0, dur=(hi===2)?(f.crouching?0.34:0.42):0.30;   /* crouch heavy is a bit faster */
+   const hi=f.atkHit||0, dur=(hi===2)?(f.crouching?0.30:0.32):(f.crouching?0.27:0.22);   /* crouch basics a touch slower than standing */
    const pre=(f.crouching&&f.onGround&&img.catk1a)?"catk":"atk";   /* hold crouch -> crouched combo */
    fr=(f.t<dur*0.42)?img[pre+(hi+1)+"a"]:(img[pre+(hi+1)+"b"]||img[pre+(hi+1)+"a"]);
   }
