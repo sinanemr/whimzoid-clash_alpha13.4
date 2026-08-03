@@ -11,6 +11,8 @@
  * and the responsive fight-container width — no CSS edits needed.
  */
 const GAME_CONFIG = {
+  gameSpeed: 0.8,      // GAME_SPEED — global simulation speed (1 = normal; <1 slows the WHOLE game
+                       //   uniformly: movement, gravity, jumps, animations, cooldowns, timers).
   viewport: {
     width: 720,        // W  — visible world width (logical px); the camera window
     height: 270,       // H  — visible world height (logical px)

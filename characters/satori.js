@@ -8,32 +8,66 @@
 
 
 /* ==================== SATORI ==================== */
- CHARS.push({id:"satori", name:"Satori", ep:"The Crimson Spike",
-  hp:485, armor:150, speed:165, jump:430, power:30,
-  bio:"Agile hybrid, double jump. Ninja Reflexes: -10% ranged damage. Crimson Discipline: alternating melee/ranged skills empowers the next by +10 (4s); repeating wastes it.",
+ CHARS.push({id:"satori", name:"Satori", ep:"The Crimson Blade",
+  hp:500, armor:155, speed:172, jump:430, power:20,
+  bio:"Fast hybrid combo fighter (double jump). NINJA AGILITY: finishing any basic combo — standing, aerial or crouching — grants +12% move & attack speed 2.5s. CRIMSON DISCIPLINE: alternating melee/ranged SKILLS prepares an empowered opposite-type skill (+10% dmg + bonus, 4s; basics don't trigger it).",
   ab:[
-   {n:"CRIMSON SHURIKEN",cost:0,cd:8,kind:"ranged",d:"Three shuriken: 3×20 (70 empowered). All three hit: STUN 0.4s."},
-   {n:"TWIN CRIMSON BLADES",cost:0,cd:9,kind:"melee",d:"Crossing slash: 70 dmg (80 empowered) + burn 10/s 2s, heavy knockback."},
-   {n:"SPINAL SPIKE BURST",cost:0,cd:11,kind:"melee",d:"Dash ending behind foe: 65 dmg (75 empowered). -10% damage taken 1.5s."}
+   {n:"CRIMSON PROJECTILES",cost:0,cd:8,kind:"ranged",d:"2 charges (4s window). Stand: 3×18 shuriken (all → STAGGER). Air: 5×10 diagonal spikes (4+ → SLOW). Crouch: 2×23 low (both → ROOT). Ranged Ready empowers."},
+   {n:"CRIMSON BLADES",cost:0,cd:9,kind:"melee",d:"Stand: crossing dash 2×34, ignores 10% block. Air: crescent dive 65, sends DOWN. Crouch: low shadow crossing 2×30, ducks highs. Melee Ready empowers."},
+   {n:"SPINAL SPIKES",cost:0,cd:11,kind:"ranged",d:"Stand: 4×18 spread, −15 block. Air: spine halo 66 + 35% DR. Crouch: floor TRAP 60 + STUN. Ranged/Melee Ready empowers."}
   ],
-  ult:{n:"CRIMSON SPIKE TEMPEST",d:"Spike barrage + blade finish: up to 115 dmg, DEFENSE BREAK 15% 4s, burn 10/s. Then -15% ranged taken 4s + next skill empowered."}
+  ult:{n:"CRIMSON CATACLYSM",d:"4 giant spikes home in (4×18); first hit PARALYZES, then a katana execution (60) with HARD KNOCKDOWN + DEFENSE BREAK. Up to 142. Whiff all four → no execution."}
  });
+ /* NEW ART: full 642x642 canvases with the character's feet at the canvas bottom and a consistent
+    in-canvas scale, so every frame renders at the same size + feet line (w=h square keeps the aspect).
+    3 idle frames sway for a natural stance. The rest of Satori's states are being re-added; until
+    each sprite is in, that state falls back to idle (engine drawFighter guard). */
  IMG_SPRITES.satori={
- idle:{w:49,h:72,src:"assets/characters/satori/idle.png"},
- hit:{w:55,h:71,src:"assets/characters/satori/hit.png"},
- attack:{w:66,h:72,src:"assets/characters/satori/attack.png"},
- attack2:{w:68,h:72,src:"assets/characters/satori/attack2.png"},
- skillA:{w:84,h:76,src:"assets/characters/satori/skillA.png"},
- skillB:{w:114,h:78,src:"assets/characters/satori/skillB.png"},
- skillC:{w:118,h:74,src:"assets/characters/satori/skillC.png"},
- block:{w:81,h:67,src:"assets/characters/satori/block.png"},
- crouch:{w:57,h:54,src:"assets/characters/satori/crouch.png"},
- jump:{w:54,h:74,src:"assets/characters/satori/jump.png"},
- ko:{w:92,h:34,src:"assets/characters/satori/ko.png"},
- ult1:{w:97,h:85,src:"assets/characters/satori/ult1.png"},
- ult2:{w:102,h:80,src:"assets/characters/satori/ult2.png"},
- run0:{w:57,h:72,src:"assets/characters/satori/run0.png"},
- run1:{w:58,h:72,dx:-6,src:"assets/characters/satori/run1.png"}
+ idle:{w:95,h:95,src:"assets/characters/satori/Satori-idle_01.png"},
+ idle2:{w:95,h:95,src:"assets/characters/satori/Satori-idle_02.png"},
+ idle3:{w:95,h:95,src:"assets/characters/satori/Satori-idle_03.png"},
+ /* crouch is a one-way DOWN transition: crouch(01) -> crouch2(02) -> crouch3(03, settled hold) */
+ crouch:{w:95,h:95,src:"assets/characters/satori/Satori_crouch_01.png"},
+ crouch2:{w:95,h:95,src:"assets/characters/satori/Satori_crouch_02.png"},
+ crouch3:{w:95,h:95,src:"assets/characters/satori/Satori_crouch_03.png"},
+ /* jump = lift-off sequence jump(01)->jump2(02)->jump3(03, tucked apex); falling on the way down;
+    dbljump = double-jump pose; landing = touchdown pose. */
+ jump:{w:95,h:95,src:"assets/characters/satori/Satori_jump_01.png"},
+ jump2:{w:95,h:95,src:"assets/characters/satori/Satori_jump_02.png"},
+ jump3:{w:95,h:95,src:"assets/characters/satori/Satori_jump_03.png"},
+ dbljump:{w:95,h:95,src:"assets/characters/satori/Satori_Doublejump.png"},
+ falling:{w:95,h:95,src:"assets/characters/satori/Satori_falling.png"},
+ landing:{w:95,h:95,src:"assets/characters/satori/Satori_landing.png"},
+ /* dblfx1..4 = the double-jump energy burst — a STATIONARY effect at the take-off point (not a fighter frame) */
+ dblfx1:{w:1,h:1,src:"assets/characters/satori/double-jump-energy_01.png"},
+ dblfx2:{w:1,h:1,src:"assets/characters/satori/double-jump-energy_02.png"},
+ dblfx3:{w:1,h:1,src:"assets/characters/satori/double-jump-energy_03.png"},
+ dblfx4:{w:1,h:1,src:"assets/characters/satori/double-jump-energy_04.png"},
+ /* 3-HIT BASIC COMBO: each hit is 2 frames (a=wind-up, b=strike). Hit 3 = HEAVY. */
+ atk1a:{w:95,h:95,src:"assets/characters/satori/Satori_attack_01_1.png"},
+ atk1b:{w:95,h:95,src:"assets/characters/satori/Satori_attack_01_2.png"},
+ atk2a:{w:95,h:95,src:"assets/characters/satori/Satori_attack_02_1.png"},
+ atk2b:{w:95,h:95,src:"assets/characters/satori/Satori_attack_02_2.png"},
+ atk3a:{w:95,h:95,src:"assets/characters/satori/Satori_heavy-attack_01.png"},
+ atk3b:{w:95,h:95,src:"assets/characters/satori/Satori_heavy-attack_02.png"},
+ /* CROUCH 3-hit combo (hold crouch + attack): same 3 hits x 2 frames, crouched variants. */
+ catk1a:{w:95,h:95,src:"assets/characters/satori/Satori_crouch_attack_01_1.png"},
+ catk1b:{w:95,h:95,src:"assets/characters/satori/Satori_crouch_attack_01_02.png"},
+ catk2a:{w:95,h:95,src:"assets/characters/satori/Satori_crouch_attack_02_1.png"},
+ catk2b:{w:95,h:95,src:"assets/characters/satori/Satori_crouch_attack_02_2.png"},
+ catk3a:{w:95,h:95,src:"assets/characters/satori/Satori_crouch_attack_03_1.png"},
+ catk3b:{w:95,h:95,src:"assets/characters/satori/Satori_crouch_attack_03_2.png"},
+ /* AIR basic attack: a single move, 3-frame sequence (airborne). */
+ airatk1:{w:95,h:95,src:"assets/characters/satori/Satori-air-attack_01.png"},
+ airatk2:{w:95,h:95,src:"assets/characters/satori/Satori-air-attack_02.png"},
+ airatk3:{w:95,h:95,src:"assets/characters/satori/Satori-air-attack_03.png"},
+ /* KO (DEFEAT only): ko = impact, ko2 = lying grounded. */
+ ko:{w:95,h:95,src:"assets/characters/satori/Satori_KO_01.png"},
+ ko2:{w:95,h:95,src:"assets/characters/satori/Satori_KO_02.png"},
+ /* KNOCKBACK sequence (knocked DOWN, not defeated): kb1 = flying/hit, kb2 = grounded down, kb3 = getting up. */
+ kb1:{w:95,h:95,src:"assets/characters/satori/Satori-knockback_01.png"},
+ kb2:{w:95,h:95,src:"assets/characters/satori/Satori-knockback_02.png"},
+ kb3:{w:95,h:95,src:"assets/characters/satori/Satori-knockback_03.png"}
 };
  SPRITES.satori={pal:{p:"#2b4fd8",P:"#1c3798",c:"#c8d2e6",a:"#e2384a",s:"#e8c39a",e:"#141420",k:"#10142e"},g:[
 "......pppp......",
