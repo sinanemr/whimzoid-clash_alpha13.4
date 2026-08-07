@@ -47,7 +47,6 @@ const WALL_L=CFG.world.leftWall, WALL_R=CFG.world.rightWall;
 const SPAWN_1=CFG.fighters.player1Spawn, SPAWN_2=CFG.fighters.player2Spawn;
 let camX=(WORLD_W-W)/2;      /* left edge of the viewport, in world px */
 let camScale=1;              /* camera zoom: 1 = normal; <1 = pulled back when fighters are far apart */
-let camZoomLvl=null;         /* quantized zoom LEVEL the camera holds (with hysteresis) so it doesn't chase the gap every frame -> no per-frame rescale crawl */
 const camClamp=v=>Math.max(0,Math.min(WORLD_W-W,v));
 const S=v=>v*CH_SCALE;                       /* sprite px -> world px */
 const MZX=(f,ox)=>f.x+f.facing*S(ox);        /* muzzle X from sprite offset */
@@ -3054,36 +3053,41 @@ function updateSimulation(dt){
   const gap=Math.abs(a.x-b.x), margin=140;
   let tz=W/(gap+margin*2);                                   /* zoom needed to fit both fighters + margins */
   tz=Math.max(W/WORLD_W,Math.min(1,tz));                     /* never zoom past showing the whole stage */
-  /* QUANTIZE the zoom target to discrete levels (with hysteresis) so the camera HOLDS a level
-     instead of chasing the fighter gap pixel-by-pixel every frame. That constant micro-rescale
-     was resampling the whole scene each frame -> the crawl during zoom-out. Now camScale settles
-     onto a step and stays exactly constant (scene fully static) until the gap crosses a boundary. */
-  const STEP=0.05;
-  let lvl=Math.round(tz/STEP)*STEP;
-  if(camZoomLvl==null)camZoomLvl=lvl;
-  if(Math.abs(tz-camZoomLvl)>STEP*0.75)camZoomLvl=lvl;       /* hysteresis: only re-step when the gap clearly crosses a level */
-  tz=camZoomLvl;
-  camScale+=(tz-camScale)*Math.min(1,dt*6);                 /* ease to the level quickly so the transition is brief */
-  if(Math.abs(tz-camScale)<0.0006)camScale=tz;              /* SETTLE the zoom: snap the last sub-pixel so the backdrop stops resampling (crawl) */
+  camScale+=(tz-camScale)*Math.min(1,dt*2.5);               /* ease the zoom smoothly (crawl-free via the offscreen world buffer in renderGame) */
   const camW=W/camScale;                                    /* visible world width */
   const mid=(a.x+b.x)/2, hi=Math.max(0,WORLD_W-camW);
   const want=Math.max(0,Math.min(hi,mid-camW/2));
   camX+=(want-camX)*Math.min(1,dt*CFG.camera.followSpeed);
-  if(Math.abs(want-camX)<0.3)camX=want;                     /* SETTLE the pan: snap the last sub-pixel so a near-still camera is truly static */
   camX=Math.max(0,Math.min(hi,camX));}
+}
+/* Offscreen buffer the WORLD is rendered into at a CONSTANT scale (RENDER_SCALE, no zoom),
+   so every layer is pixel-stable frame to frame. renderGame then does ONE smooth scale of this
+   buffer to the screen by camScale -> smooth zoom-out with NO per-layer resample crawl. Sized for
+   the widest possible view (whole stage at max zoom-out) + shake padding; created once. */
+const CAM_PAD=24;   /* world-px margin rendered around the view so screen-shake never reveals a buffer edge */
+let _worldBuf=null,_worldCtx=null;
+function worldBuffer(){
+ if(!_worldBuf){
+  _worldBuf=document.createElement("canvas");
+  _worldBuf.width =Math.ceil((WORLD_W          +2*CAM_PAD)*RENDER_SCALE)+4;
+  _worldBuf.height=Math.ceil((H*WORLD_W/W       +2*CAM_PAD)*RENDER_SCALE)+4;
+  _worldCtx=_worldBuf.getContext("2d");
+ }
+ return _worldBuf;
 }
 /* Draws the current game state (stage, fighters, projectiles, effects, HUD).
    Pure render — reads state without advancing it, so both host and guest use it. */
 function renderGame(){
- ctx.save();
- ctx.scale(RENDER_SCALE,RENDER_SCALE);      /* map world px -> supersampled device px */
- const shk=shake*SETTINGS_shakeScale();
- if(shk>0)ctx.translate(rand(-3,3)*shk*3,rand(-2,2)*shk*3);
- ctx.save();
- /* Snap the pan to a whole BACKING pixel (camX * camScale * RENDER_SCALE integer) so the
-    scrolling stage/parallax doesn't sub-pixel-shimmer as the camera follows the fighters. */
- const _pk=camScale*RENDER_SCALE||1, camXs=Math.round(camX*_pk)/_pk;
- ctx.translate(0,GROUND);ctx.scale(camScale,camScale);ctx.translate(-camXs,-GROUND);   /* WORLD space: uniform zoom anchored at the ground line, then pan */
+ const s=camScale;
+ const wx0=camX-CAM_PAD, wy0=(GROUND-GROUND/s)-CAM_PAD;     /* top-left of the (padded) visible world region */
+ const visW=W/s+CAM_PAD*2, visH=H/s+CAM_PAD*2;
+ const buf=worldBuffer(), b=_worldCtx;
+ const sw=Math.min(buf.width,  visW*RENDER_SCALE), sh=Math.min(buf.height, visH*RENDER_SCALE);
+ b.setTransform(1,0,0,1,0,0);
+ b.clearRect(0,0,Math.ceil(sw)+2,Math.ceil(sh)+2);
+ b.setTransform(RENDER_SCALE,0,0,RENDER_SCALE,-wx0*RENDER_SCALE,-wy0*RENDER_SCALE);   /* world -> buffer, constant density */
+ b.imageSmoothingEnabled=false;            /* match the old main-canvas default; hi-res sprites + backdrop opt into smoothing themselves */
+ const _prevCtx=ctx; ctx=b;                /* redirect every world-draw below into the buffer */
  drawStage(tGlobal);                       /* backdrop now scales WITH the fighters (one uniform zoom) */
  if(typeof drawWaves==="function")drawWaves();      /* subtle water shimmer on the sea (js/waves.js) */
  if(typeof drawBirds==="function")drawBirds();      /* ambient seagulls in the sky (js/birds.js) — behind everything */
@@ -3138,9 +3142,16 @@ function renderGame(){
  if(typeof drawRegulatorGuy==="function")drawRegulatorGuy();   /* diver by the tanks (js/regulator.js) — FOREGROUND, in front of the fighters */
  if(typeof drawCradleFore==="function")drawCradleFore();   /* crate next to the regulator (js/plasticcradle.js) — foreground */
  drawProjectiles();drawCodexes(tGlobal);drawFx();
- ctx.restore();
- drawHUD();                                /* HUD stays screen-fixed */
- ctx.restore();
+ ctx=_prevCtx;                             /* world done — back to the real canvas */
+ /* ---- composite: one smooth scale of the whole world buffer onto the screen (+ screen shake) ---- */
+ const shk=shake*SETTINGS_shakeScale();
+ const ox=shk>0?rand(-3,3)*shk*3:0, oy=shk>0?rand(-2,2)*shk*3:0;
+ ctxMain.setTransform(RENDER_SCALE,0,0,RENDER_SCALE,0,0);
+ ctxMain.imageSmoothingEnabled=true;ctxMain.imageSmoothingQuality="high";
+ ctxMain.drawImage(buf, 0,0,sw,sh,  -s*CAM_PAD+ox, -s*CAM_PAD+oy, visW*s, visH*s);
+ ctxMain.imageSmoothingEnabled=false;
+ ctx=ctxMain;drawHUD();                    /* HUD stays screen-fixed, crisp */
+ ctxMain.setTransform(1,0,0,1,0,0);
 }
 /* The main game loop (one requestAnimationFrame tick). Local + online-host run
    the simulation then render; the online guest applies/interpolates snapshots and
