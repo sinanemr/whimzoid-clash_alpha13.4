@@ -47,6 +47,7 @@ const WALL_L=CFG.world.leftWall, WALL_R=CFG.world.rightWall;
 const SPAWN_1=CFG.fighters.player1Spawn, SPAWN_2=CFG.fighters.player2Spawn;
 let camX=(WORLD_W-W)/2;      /* left edge of the viewport, in world px */
 let camScale=1;              /* camera zoom: 1 = normal; <1 = pulled back when fighters are far apart */
+let camZoomLvl=null;         /* quantized zoom LEVEL the camera holds (with hysteresis) so it doesn't chase the gap every frame -> no per-frame rescale crawl */
 const camClamp=v=>Math.max(0,Math.min(WORLD_W-W,v));
 const S=v=>v*CH_SCALE;                       /* sprite px -> world px */
 const MZX=(f,ox)=>f.x+f.facing*S(ox);        /* muzzle X from sprite offset */
@@ -95,6 +96,51 @@ const ABILITIES_CROUCH={};   /* ABILITIES_CROUCH[id]=[fn,fn,fn] — crouch skill
 const ABILITIES_AIR={};      /* ABILITIES_AIR[id]=[fn,fn,fn]    — air skill variants (optional)    */
 const AIR_SKILL_WINDOW=1.0;  /* seconds after a jump you may trigger an AIR skill (double-jump cancels it) */
 const JUMP_WINDUP=0.08;      /* fast GROUND wind-up (jump01 -> jump02) played before the leap launches */
+/* ---- SATORI six-frame RUN CYCLE — single editable config (durations are in the engine's game-time
+   seconds, so the run stays locked to his movement speed). Frame order F1..F6 = run0..run5.
+   Stepped (instant) frame switches, time-accumulated so it's identical at any refresh rate.
+     dur[i]      normal per-frame hold (F1..F6). Loop total ~0.48s (~12.5 fps).
+     startDur    overrides used when ENTERING the run (starts at startFrame=F2, not the F1 full-stride).
+     startFrame  frame index the run enters on (1 = F2), so idle->run never teleports into a full stride.
+     exitDur     how long the compact exit pose (F2 or F5) holds on run->idle before returning to idle. */
+const SATORI_RUN={
+  /* Same 90:70:80 long/pass/rise rhythm as the spec, scaled ~0.81x so the ~0.39s loop matches his
+     ground speed (no foot-slide). Bump every value up together to slow the legs, down to speed them. */
+  dur:[0.073,0.056,0.065,0.073,0.056,0.065],   /* F1 long / F2 pass / F3 rise / F4 long / F5 pass / F6 rise */
+  startDur:{1:0.065,2:0.065,3:0.073},           /* F2,F3,F4 while starting, then normal timing takes over */
+  startFrame:1,
+  exitDur:0.07
+};
+/* Compact/grounded pose to exit through on run->idle: F2 (early half) or F5 (late half). */
+function satoriRunExit(frame){ return frame<=2 ? 1 : 4; }
+/* SATORI run-animation state machine (VISUAL only — never touches physics/input/collision).
+   Phases: "idle" -> "start" (enter on F2) -> "run" (normal loop) -> "stop" (brief exit pose) -> "idle".
+   Uses accumulated elapsed time (dt) so it is frame-rate independent. */
+function updateSatoriRun(f,dt){
+  const grounded=f.onGround, runningNow=(f.state==="walk"&&grounded&&f.alive);
+  let ph=f._locoPhase||"idle";
+  if(runningNow){
+   if(ph==="idle"||ph==="stop"){ph="start";f._runFrame=SATORI_RUN.startFrame;f._runTimer=0;}   /* enter -> start at F2 */
+   /* advance frames by elapsed time (handles multiple frames per tick at low fps) */
+   f._runTimer+=dt;
+   let dur=(ph==="start"&&SATORI_RUN.startDur[f._runFrame]!=null)?SATORI_RUN.startDur[f._runFrame]:SATORI_RUN.dur[f._runFrame];
+   while(f._runTimer>=dur){
+    f._runTimer-=dur;
+    f._runFrame=(f._runFrame+1)%6;
+    if(ph==="start"&&f._runFrame===4)ph="run";   /* past F4 -> normal loop */
+    dur=(ph==="start"&&SATORI_RUN.startDur[f._runFrame]!=null)?SATORI_RUN.startDur[f._runFrame]:SATORI_RUN.dur[f._runFrame];
+   }
+  }else{
+   if(ph==="start"||ph==="run"){
+    if(f.state==="idle"&&grounded&&f.alive){ph="stop";f._runFrame=satoriRunExit(f._runFrame);f._runTimer=0;}   /* movement released -> compact exit pose */
+    else ph="idle";   /* interrupted by a higher-priority action -> abort, that state's animation takes over */
+   }else if(ph==="stop"){
+    f._runTimer+=dt;
+    if(f._runTimer>=SATORI_RUN.exitDur)ph="idle";
+   }
+  }
+  f._locoPhase=ph;
+}
 /* Which stance variant the fighter's next skill/attack should use. */
 function fighterContext(f){ return !f.onGround ? "air" : (f.crouching ? "crouch" : "ground"); }
 const SPRITES={};
@@ -249,7 +295,22 @@ for(const k in FX_IMGS){const o=FX_IMGS[k];o.img=new Image();o.img.src=o.src;}
 const PROJ_IMGS={
  rocket:{w:25,h:7,src:"assets/projectiles/rocket.png"},
  shuriken:{w:17,h:17,src:"assets/projectiles/shuriken.png"},
- spike:{w:24,h:13,src:"assets/projectiles/spike.png"}
+ spike:{w:24,h:13,src:"assets/projectiles/spike.png"},
+ /* SATORI crouch-C thrown spike — 4-frame animation (642x642 canvases, centred vertical blade) */
+ cspike1:{src:"assets/projectiles/Spike skill_C_01.png"},
+ cspike2:{src:"assets/projectiles/Spike skill_C_02.png"},
+ cspike3:{src:"assets/projectiles/Spike skill_C_03.png"},
+ cspike4:{src:"assets/projectiles/Spike skill_C_04.png"},
+ /* the planted mine (loops, 3 frames) + its eruption (plays once, 6 frames incl. the _00 lead-in) */
+ mineg1:{src:"assets/projectiles/Spike ground_01.png"},
+ mineg2:{src:"assets/projectiles/Spike ground_02.png"},
+ mineg3:{src:"assets/projectiles/Spike ground_03.png"},
+ minex0:{src:"assets/projectiles/Spike mine explosion_00.png"},
+ minex1:{src:"assets/projectiles/Spike mine explosion_01.png"},
+ minex2:{src:"assets/projectiles/Spike mine explosion_02.png"},
+ minex3:{src:"assets/projectiles/Spike mine explosion_03.png"},
+ minex4:{src:"assets/projectiles/Spike mine explosion_04.png"},
+ minex5:{src:"assets/projectiles/Spike mine explosion_05.png"}
 };
 for(const k in PROJ_IMGS){const d=PROJ_IMGS[k];d.img=new Image();d.img.src=d.src;}
 /* =============== INPUT =============== */
@@ -273,6 +334,8 @@ const ULT_KEY={p1:ULT_LABEL('p1'),p2:ULT_LABEL('p2'),cpu:ULT_LABEL('p2')};
 /* =============== STATE =============== */
 let fighters=[], projectiles=[], particles=[], floaters=[], rings=[], props=[], codexes=[];
 let groundFx=[];   /* stationary world effects (e.g. Satori's double-jump energy) that stay where they spawned */
+let ghosts=[];     /* fading afterimage snapshots (semi-transparent sprite copies) left behind during a dash */
+let sawCuts=[];    /* glowing-red gash marks the ground-saw carves as it rolls (fade out) */
 let stageId=0, roundNum=1, timer=CFG.match.roundTime, running=false, paused=false, roundOver=false, shake=0, tGlobal=0;
 /* Round rules captured at match start so mid-match changes only take effect next match. */
 let matchRoundTime=CFG.match.roundTime, matchWinsRequired=CFG.match.winsRequired;
@@ -446,6 +509,16 @@ class Fighter{
   this._primeHits=0; this.barrierHeal=0; this.marks=0; this.poseSkill=-1; this.ultPose=0; this.skillAT=0; this.skillBT=0; this._swarmT=0; this._squashT=0; this._possessT=0;
   this.discT=0; this.discPend=null; this.momT=0; this.momBonusT=0; this.dr10T=0; this.defBreak=0;
   this._shurHits=0; this._shurVolley=0; this._atkAlt=true; this._atkStep=0; this._ultHalf=0; this._spikeDmg=65;
+  /* SATORI skill kit: ROOT (movement/jump pinned, can still act); Skill A 2-charge system + 4s window;
+     projectile-volley hit counter (stagger/slow/root triggers); ultimate spike-hit tracking. */
+  this.rootT=0; this._aChg=2; this._aWin=0; this._aShot=1; this._airHold=0; this._cbHold=0; this._satVol=0; this._satHits=0;
+  this._ultConn=false; this._ultSpk=0; this._recover=0; this.dr35T=0;
+  this.hurtT=0; this._hitFrame=1; this._hitLow=false;   /* brief hit-reaction window (real hits only, not DoT ticks) — plants the landing/hurt pose + picks a random standing-hit sprite; _hitLow = struck by a crouching foe */
+  this._blockHitT=0; this._crouchBlock=false;   /* SATORI: block-impact window + crouch-block (crouch+block held) flag */
+  this._airBlockT=0; this._airBlockUsed=false; this._blkPrev=false;   /* SATORI air block: active timer, once-per-airborne lock, block-press edge */
+  this.fallDmgT=0;   /* SATORI hard-landing sequence timer: falldmg1 (touchdown) -> falldmg2 (get up) */
+  this._fbState=null; this._fbCur=null; this._fbPrev=null; this._fbT=0; this._fbLast=0;   /* SATORI move-transition crossfade */
+  this._locoPhase="idle"; this._runFrame=0; this._runTimer=0;   /* SATORI run-cycle state machine */
   this.counterT=0; this._counterHitT=0;
   this.ultCharging=false; this.ultChargeT=0; this._ultTier=4; this.shock=0; this.shockDps=5;
  }
@@ -505,7 +578,7 @@ class Fighter{
   }
   /* ----- incoming: phase = invulnerable ----- */
   if(this.phase>0){floaters.push({x:this.x,y:this.y-64,txt:"PHASED",t:0,col:"#bfeaff",size:6});return;}
-  const blocked=this.blocking&&this.onGround&&!opts.unblockable;
+  const blocked=((this.blocking&&this.onGround)||(this._airBlockT>0))&&!opts.unblockable;   /* ground block OR active air-block window */
   if(this.dr>0)dmg*=.8;
   if(this.zen>0)dmg*=.8;
   if(this.surge>0)dmg*=.75;
@@ -515,6 +588,7 @@ class Fighter{
   if(this.d.id==="akira"&&this.chi>=50)dmg*=.9;
   if(this.momT>0&&opts.ranged)dmg*=.85;           /* Ninja Momentum */
   if(this.dr10T>0)dmg*=.9;
+  if(this.dr35T>0)dmg*=.65;   /* Satori Air C — Crimson Spine Halo: 35% damage reduction during the spin */
   if(blocked)kb*=0.35;   /* blocking softens knockback; the hit now drains the BLOCK BAR (armor), not HP */
   dmg=Math.max(1,Math.round(dmg));
   /* ----- absorption: ability shields -> (BLOCK BAR only while blocking) -> HP (true & DoT bypass) -----
@@ -543,7 +617,14 @@ class Fighter{
   /* ----- energy: attacker only, landed non-DoT hits ----- */
   if(!opts.dot&&att&&att.alive)att.gainMeter(3+dmg*0.08);
   this.hitFlash=blocked?0.05:0.12;
-  if(this.windmill<=0){this.vx=dir*kb; if(kb>175&&!blocked&&!opts.noPop){this.vy=-Math.min(240,120+kb*0.22); this.onGround=false; if(IMG_SPRITES[this.d.id]&&IMG_SPRITES[this.d.id].kb1){this.kbT=1;this.kbLandT=-1;}}}   /* launched: arc back (higher for bigger knockback) -> knockback animation */
+  if(blocked&&!opts.dot)this._blockHitT=0.22;   /* blocked hit -> show the block-impact pose briefly */
+  if(!opts.dot&&!blocked){this.hurtT=0.36;this._hitFrame=Math.random()<0.5?1:2;
+   this._hitLow=!!(att&&att.crouching&&att.onGround)||!!opts.low;}   /* real hit -> reaction window + random pose; low = hit came from a crouching foe (or a flagged low attack) */
+  if(this.windmill<=0){this.vx=dir*kb;
+   if(kb>175&&!blocked){
+    if(!opts.noPop){this.vy=-Math.min(240,120+kb*0.22);this.onGround=false;}   /* pop up into the arc (skipped for horizontal-only knockbacks like Necmi's 3rd) */
+    if(IMG_SPRITES[this.d.id]&&IMG_SPRITES[this.d.id].kb1){this.kbT=1;this.kbLandT=-1;}   /* play the knockback animation either way */
+   }}
   floaters.push({x:this.x,y:this.y-64,txt:blocked?"BLOCK":(crit?"CRIT "+dmg:""+dmg),t:0,
    col:blocked?"#9d92c2":(crit?"#ffd23f":(opts.col||"#ffffff")),size:blocked?6:(crit||dmg>=55?10:7)});
   if(!blocked&&dmg>=20) shake=Math.max(shake,dmg>=55?0.5:0.25);
@@ -784,17 +865,29 @@ function readInput(f,dt){
  if(IN.down("left"))mv-=1; if(IN.down("right"))mv+=1;
  if(f.confuse>0)mv=-mv;
  f.blocking=!!IN.down("block")&&f.onGround&&!f.guardBroken;   /* can't block while guard is broken (block bar drained) */
- f.crouching=!!IN.down("crouch")&&f.onGround&&!f.blocking;
+ f.crouching=(f.d.id==="satori"&&f.state==="special"&&f.skillContext==="crouch")   /* a crouch SKILL stays crouched through its whole sequence even if the button is released */
+  ||(!!IN.down("crouch")&&f.onGround&&!f.blocking);
+ f._crouchBlock=f.blocking&&!!IN.down("crouch")&&f.onGround;   /* holding crouch + block -> low (crouch) block pose */
+ /* SATORI AIR BLOCK: TAP block in the air -> a 0.5s reaction guard (no need to hold). Costs 25% of the
+    block bar up front, and only once per airborne period (can't block again until he lands). */
+ {const blk=!!IN.down("block");
+  if(f.d.id==="satori"&&!f.onGround&&blk&&!f._blkPrev&&!f._airBlockUsed&&!f.guardBroken&&f.armor>=f.maxArmor*0.25){
+   f._airBlockT=0.35;f._airBlockUsed=true;f.armor-=f.maxArmor*0.25;statusFloat(f,"AIR GUARD","#8fd8ff");}
+  f._blkPrev=blk;}
  if(f.blocking)f.lastAction=tGlobal;
  if(f.state==="attack"||f.state==="special"){f.vx*=0.85;return;}
  if(f.blocking){f.vx=0;f.state="idle";return;}
  if(f.jumpWindup>0){f.vx=0;f.state="idle";return;}   /* committed to the jump — locked on the ground during the wind-up */
  if(f.crouching){f.vx=0;f.state="idle";}
  else{
-  f.vx=mv*f.d.speed*(f.spdBuff>0?1.6:1)*(f.agilityT>0?1.12:1)*(f.slowT>0?(1-f.slowAmt):1)*(f.frenzy>0?1.1:1);   /* Ninja Agility: +12% move */
-  f.state=mv!==0&&f.onGround?"walk":(f.onGround?"idle":"jump");
-  if(mv!==0)f.facing=mv>0?1:-1;
-  if(IN.down("jump")&&(f.onGround||((f.d.id==="necaati"||f.d.id==="satori"||f.d.id==="agron")&&f.jumps<2))){
+  const rooted=f.rootT>0;   /* Satori's ROOT: pinned in place (no move / no jump) but may still attack & block */
+  /* SATORI: during the landing pose or a hurt reaction, ignore walk input so his feet don't slide
+     (knockback fly-back still happens — that runs while stunned, before this branch). Jump still allowed. */
+  const planted=(f.d.id==="satori"&&f.onGround&&(f.landT>0||f.hurtT>0||f.fallDmgT>0));
+  f.vx=(rooted||planted)?0:mv*f.d.speed*(f.spdBuff>0?1.6:1)*(f.agilityT>0?1.12:1)*(f.slowT>0?(1-f.slowAmt):1)*(f.frenzy>0?1.1:1);   /* Ninja Agility: +12% move */
+  f.state=(mv!==0&&!rooted&&!planted)&&f.onGround?"walk":(f.onGround?"idle":"jump");
+  if(mv!==0&&!planted)f.facing=mv>0?1:-1;
+  if(!rooted&&IN.down("jump")&&(f.onGround||((f.d.id==="necaati"||f.d.id==="satori"||f.d.id==="agron")&&f.jumps<2))){
    if(f.onGround){if(f.jumpWindup<=0)f.jumpWindup=JUMP_WINDUP;}   /* start the GROUND wind-up; the launch fires when it ends */
    else if(f.jumps<2){f.vy=-f.d.jump*.85;f.jumps=2;f.airSkillT=0;f.jumpT=0;f.airAtkN=0;   /* double jump cancels the air-skill window + refreshes the 3 air attacks */
     if(IMG_SPRITES[f.d.id]&&IMG_SPRITES[f.d.id].dblfx1)groundFx.push({id:f.d.id,x:f.x,y:f.y,t:0,facing:f.facing});   /* energy burst stays at the take-off point */
@@ -828,6 +921,7 @@ function tryAttack(f){
  f.atkHit=((f._atkStep-1)%3+3)%3;   /* 3-hit combo index (0,1,2); hit 3 (=2) is the HEAVY */
  if(f.skillContext==="air"){f.atkHit=Math.min(f.airAtkN||0,2);f.airAtkN=(f.airAtkN||0)+1;}   /* AIR combo: own 1->2->3 counter */
  const _sid=onlineSessionId,_rid=onlineRoundId;   /* online: ignore this delayed hit if the round/session moved on */
+ const hitDelay=(f.d.id==="satori"&&f.skillContext==="air"&&f.atkHit===2)?200:110;   /* air hit 3 has a wind-up, so the hit lands later (on the strike frame) */
  setTimeout(()=>{if(!running||onlineCallbackStale(_sid,_rid))return;
   if(misses(f))return;
   const foe=other(f),dx=foe.x-f.x;
@@ -859,7 +953,7 @@ function tryAttack(f){
   }
   hitProps(f.x,f.facing,reach,dmg,f,f.centerY,true);   /* basic attack (melee) — can hit scaffolds */
   if(fin){f.agilityT=2.5;statusFloat(f,"NINJA AGILITY","#ff5e6e");}   /* completing a basic sequence -> Ninja Agility */
- },110);
+ },hitDelay);
 }
 /* Attempts to cast an ability (slot i): blocked while casting/blocking/silenced/locked or on cooldown; otherwise starts its cooldown and runs ABILITIES[id][i]. */
 function tryAbility(f,i){
@@ -870,8 +964,12 @@ function tryAbility(f,i){
  const ctx=fighterContext(f);
  /* AIR skill: only inside the post-jump window (press jump, then the skill within 1s; a double jump cancels it) */
  if(ctx==="air"&&(f.airSkillT||0)<=0)return;
+ /* SATORI Skill A (slot 0) uses a 2-charge system instead of a flat cooldown (see updateFighter). */
+ const satA=(f.d.id==="satori"&&i===0);
+ if(satA&&(f._aChg||0)<=0)return;
  if(ctx==="air")f.airSkillT=0;   /* one air skill per jump */
- f.cd[i]=f.d.ab[i].cd;
+ if(satA){f._aChg--;if(f._aChg===1)f._aWin=4;else{f._aWin=0;f.cd[0]=8;}}
+ else f.cd[i]=f.d.ab[i].cd;
  f.lastAction=tGlobal;
  f.poseSkill=i;
  f.skillContext=ctx;   /* tag for the (future) crouch/air animation + effect variants */
@@ -1111,6 +1209,30 @@ function updateFighter(f,dt){
  if(f.momBonusT>0)f.momBonusT-=dt;
  if(f.dr10T>0)f.dr10T-=dt;
  if(f.defBreak>0)f.defBreak-=dt;
+ if(f._airHold>0)f._airHold-=dt;   /* SATORI air Skill A: keeps the special open through the slower throw animation */
+ if(f._cbHold>0)f._cbHold-=dt;     /* SATORI crouch Skill B: keeps the special open through the 5-frame sequence */
+ if(f.d.id==="satori"&&f.state==="special"&&f.poseSkill===1&&!f.onGround&&f.dashKind!=="satdive"&&f.t>0.14){
+  /* AIR Skill B wind-up (blade drawn on air02): dark-red lightning + crimson glow along the sword */
+  const bx=MZX(f,6),by=MZY(f,48);
+  if(Math.random()<0.7){const bl=rand(14,30),a=rand(-0.9,0.3)+(f.facing>0?0:Math.PI);let px=bx,py=by;
+   for(let seg=0;seg<3;seg++){const nx=px+Math.cos(a)*bl/3+rand(-4,4),ny=py+Math.sin(a)*bl/3+rand(-4,4);
+    particles.push({x:px,y:py,vx:(nx-px)*10,vy:(ny-py)*10,r:rand(1,2.2),col:seg%2?"#e2384a":"#5e0812",t:0,life:rand(.06,.13)});px=nx;py=ny;}}
+  if(Math.random()<0.5)particles.push({x:bx+rand(-6,10)*f.facing,y:by+rand(-10,18),vx:rand(-30,30),vy:rand(-40,20),r:rand(1.4,3),col:Math.random()<0.5?"#ff8fa0":"#e2384a",t:0,life:rand(.12,.26)});
+ }
+ if(f.rootT>0){f.rootT-=dt;if(Math.random()<0.5)particles.push({x:f.x+rand(-10,10),y:GROUND-rand(0,6),vx:rand(-20,20),vy:-rand(10,50),r:rand(1,2.5),col:"#e2384a",t:0,life:rand(.2,.4)});}
+ if(f._recover>0)f._recover-=dt;
+ if(f.dr35T>0)f.dr35T-=dt;
+ if(f.hurtT>0)f.hurtT-=dt;
+ if(f._blockHitT>0)f._blockHitT-=dt;
+ if(f._airBlockT>0)f._airBlockT-=dt;
+ if(f.onGround)f._airBlockUsed=false;   /* air block re-arms once he lands */
+ if(f.fallDmgT>0)f.fallDmgT-=dt;
+ /* SATORI Skill-A charges: first cast opens a 4s window for the 2nd; casting the 2nd OR letting the window
+    lapse starts the 8s cooldown; when it finishes, both charges return together. */
+ if(f.d.id==="satori"){
+  if(f._aWin>0){f._aWin-=dt;if(f._aWin<=0&&f._aChg===1){f._aChg=0;f.cd[0]=Math.max(f.cd[0],8);}}
+  if(f.cd[0]<=0&&f._aChg===0&&f._aWin<=0){f._aChg=2;statusFloat(f,"CRIMSON PROJECTILES","#ff8fa0");}
+ }
  if(f.overheatDeb>0)f.overheatDeb-=dt;
  if(f.zen>0){f.zen-=dt;f.chi=100;
   if(f.zen<=0){f.chi=0;statusFloat(f,"ZEN ENDS","#7de8d8");}}
@@ -1168,12 +1290,12 @@ function updateFighter(f,dt){
  /* BLOCK BAR: refills while NOT blocking. GUARD BREAK when it empties — can't block again until it
     has recovered to at least 25%. */
  if(f.alive){
-  if(!f.blocking&&f.armor<f.maxArmor)f.armor=Math.min(f.maxArmor,f.armor+f.maxArmor*0.12*dt);
+  if(!f.blocking&&f._airBlockT<=0&&f.armor<f.maxArmor)f.armor=Math.min(f.maxArmor,f.armor+f.maxArmor*0.12*dt);
   if(f.armor<=0){if(!f.guardBroken){f.guardBroken=true;f.blocking=false;statusFloat(f,"GUARD BREAK","#e2384a");}}
   else if(f.armor>=f.maxArmor*0.25)f.guardBroken=false;
  }
- if(f.state==="attack"&&f.t>(f.d.id==="satori"?(!f.onGround?.22:(f.atkHit===2?(f.crouching?.30:.32):(f.crouching?.27:.22))):(f.d.id==="agron"&&f.frenzy>0?.27:.3))*(f.agilityT>0?.9:1))f.state="idle";   /* Satori basics are snappy; Ninja Agility = +attack speed */
- if(f.state==="special"&&f.t>.45&&!(f.d.id==="notalk"&&f.windmill>0)&&!(f.d.id==="munevver"&&f.skillAT>0)&&!(f.d.id==="necmi"&&(f.skillAT>0||f.skillBT>0))&&!(f.d.id==="haydar"&&(f.skillAT>0||f.skillBT>0||f.ultCharging))&&!(f.d.id==="putuk"&&(f.counterT>0||f._counterHitT>0)))f.state="idle";
+ if(f.state==="attack"&&f.t>(f.d.id==="satori"?(!f.onGround?(f.atkHit===2?.36:.22):(f.atkHit===2?(f.crouching?.30:.32):(f.crouching?.27:.22))):(f.d.id==="agron"&&f.frenzy>0?.27:.3))*(f.agilityT>0?.9:1))f.state="idle";   /* Satori basics are snappy; air hit 3 is a 2-frame sequence so it's a touch longer; Ninja Agility = +attack speed */
+ if(f.state==="special"&&f.t>(f.d.id==="satori"?(f._cbHold>0?.85:(f._airHold>0?.68:(f._recover>0?.26:.45))):.45)&&!(f.d.id==="notalk"&&f.windmill>0)&&!(f.d.id==="munevver"&&f.skillAT>0)&&!(f.d.id==="necmi"&&(f.skillAT>0||f.skillBT>0))&&!(f.d.id==="haydar"&&(f.skillAT>0||f.skillBT>0||f.ultCharging))&&!(f.d.id==="putuk"&&(f.counterT>0||f._counterHitT>0)))f.state="idle";
  /* RELENTLESS MARCH — uninterruptible advance: catch the foe and DRAG them along */
  if(f.d.id==="notalk"&&f.windmill>0){
   f.windmill-=dt;const foe=other(f);
@@ -1202,13 +1324,45 @@ function updateFighter(f,dt){
   if(f.windmill<=0){f.state="idle";f._wmHit=false;f._wmGrab=false;}
  }
  if(f.dashT>0){
-  f.dashT-=dt;f.x+=f.dashDir*650*dt;
-  const trailCol=f.dashKind==="ember"?"#f28022":f.dashKind==="satori"?"#e2384a":"#5e1220";
+  const satDash=(typeof f.dashKind==="string"&&(f.dashKind.indexOf("sat")===0||f.dashKind==="cblow"));
+  f.dashT-=dt;
+  if(f.dashKind==="satcross"||f.dashKind==="cblow"){   /* eased dash: smoothstep accel-in / decel-out -> soft start & slide-stop */
+   const dur=f._dashDur||0.2,p=Math.max(0,Math.min(1,1-f.dashT/dur)),s=p*p*(3-2*p);
+   f.x=(f._dashStartX!=null?f._dashStartX:f.x)+(f._dashLen||0)*s;
+  }else f.x+=f.dashDir*(f.dashKind==="satstab"||f.dashKind==="satback"?520:650)*dt;
+  if(f.dashKind==="satdive"&&f.y<GROUND){f.y=Math.min(GROUND,f.y+900*dt);if(f.y>=GROUND){f.vy=0;f.onGround=true;f.jumps=0;}}   /* diagonal DOWN dive */
+  if(f.dashKind==="satcross"||f.dashKind==="cblow"||f.dashKind==="satdive"){   /* GHOSTING: drop evenly-spaced afterimage snapshots of the current dash pose */
+   const gfr=IMG_SPRITES[f.d.id]&&(f.dashKind==="cblow"?IMG_SPRITES[f.d.id].cskB2:(f.dashKind==="satdive"?IMG_SPRITES[f.d.id].skBair4:IMG_SPRITES[f.d.id].skB4));
+   if(gfr&&Math.abs(f.x-(f._lastGhostX!=null?f._lastGhostX:f.x-99))>=9){f._lastGhostX=f.x;
+    ghosts.push({frame:gfr,x:f.x,y:f.y,facing:f.facing,t:0,life:0.26});if(ghosts.length>28)ghosts.shift();}}
+  const trailCol=f.dashKind==="ember"?"#f28022":satDash?"#e2384a":"#5e1220";
   particles.push({x:f.x-f.dashDir*rand(5,15),y:f.y-rand(10,50),vx:-f.dashDir*rand(30,75),vy:rand(-25,25),r:rand(1,3),col:trailCol,t:0,life:.3});
   const foe=other(f);
-  if(!f.dashHit&&Math.abs(foe.x-f.x)<S(30)&&Math.abs(foe.hurtY-f.centerY)<S(45)){
-   f.dashHit=true;
-   if(f.dashKind==="satori"){foe.takeDamage(f._spikeDmg||65,140,f.dashDir,{melee:true,skill:true,col:"#e2384a",fx:"#e2384a"});}
+  if(!f.dashHit&&f.dashKind!=="satback"&&Math.abs(foe.x-f.x)<S(f.dashKind==="satdive"?36:30)&&Math.abs(foe.hurtY-f.centerY)<S(f.dashKind==="satdive"?70:45)){
+   f.dashHit=true;const mult=f._cEmp?1.1:1;
+   if(f.dashKind==="satcross"){/* Standing B — Crimson Crossing: 2×34 crossing dash, ignores 10% block */
+    foe.takeDamage(Math.round(68*mult),150,f.dashDir,{melee:true,skill:true,energy:true,col:"#e2384a",fx:"#ff8fa0"});
+    foe.armor=Math.max(0,foe.armor-foe.maxArmor*0.1);ringFx(foe.x,foe.centerY,"#e2384a",50);
+    if(f._cEmp)setTimeout(()=>{if(!running||!foe.alive)return;foe.x+=(f.x-foe.x)*0.5;foe.vx=0;statusFloat(foe,"CRIMSON REBOUND","#ff5e6e");},130);}   /* Melee Ready: rebound */
+   else if(f.dashKind==="satdive"){/* Air B — Crimson Crescent Dive: 65, sends DOWN, lands behind */
+    foe.takeDamage(Math.round(65*mult),150,f.dashDir,{melee:true,skill:true,energy:true,col:"#e2384a",fx:"#ff8fa0"});
+    foe.vy=Math.max(foe.vy,320);foe.onGround=false;ringFx(foe.x,foe.centerY,"#e2384a",44);
+    if(f._cEmp){foe.groundBounce=true;statusFloat(foe,"GROUND BOUNCE","#ff8fa0");f._recover=0.2;}}
+   else if(f.dashKind==="cblow"){/* Crouch B — Low Shadow Crossing: low cut on the pass (hit 1 of 2; the reverse slash is hit 2) */
+    foe.takeDamage(Math.round(30*mult),120,f.dashDir,{melee:true,skill:true,energy:true,col:"#e2384a",fx:"#ff8fa0"});ringFx(foe.x,foe.centerY,"#e2384a",42);}
+   else if(f.dashKind==="satlow"){/* Crouch B (legacy single-hit variant) */
+    foe.takeDamage(Math.round(60*mult),140,f.dashDir,{melee:true,skill:true,energy:true,col:"#e2384a",fx:"#ff8fa0"});ringFx(foe.x,foe.centerY,"#e2384a",42);
+    if(f._cEmp){foe.slowT=2;foe.slowAmt=.20;statusFloat(foe,"SLOWED","#b8e6c8");f.cd[0]=Math.max(0,f.cd[0]-1);}}   /* Melee Ready: slow + −1s Skill A cd */
+   else if(f.dashKind==="satstab"){/* Standing C — Spinal Spike Burst: stab now (36), daggers detonate inside after 1s (36) */
+    foe.takeDamage(Math.round(36*mult),180,f.dashDir,{melee:true,skill:true,energy:true,col:"#e2384a",fx:"#ff8fa0"});
+    foe.armor=Math.max(0,foe.armor-15);ringFx(foe.x,foe.centerY,"#e2384a",40);spawnHitFx(foe.x,foe.centerY,"#e2384a",8);
+    const emp=f._cEmp;
+    setTimeout(()=>{if(!running||!foe.alive)return;
+     foe.takeDamage(Math.round(36*(emp?1.1:1)),160,Math.sign(foe.x-f.x)||f.facing,{skill:true,energy:true,col:"#e2384a",fx:"#ff8fa0"});
+     ringFx(foe.x,foe.centerY,"#e2384a",60);ringFx(foe.x,foe.centerY,"#ff8fa0",40);spawnHitFx(foe.x,foe.centerY,"#ff8fa0",14);shake=Math.max(shake,.4);
+     if(emp){foe.burnDps=8;foe.burn=Math.max(foe.burn,2);statusFloat(foe,"ENERGY BURN","#ff8fa0");}},1000);
+    f.dashKind="satback";f.dashDir=-f.dashDir;f.dashT=0.12;}   /* immediately jump back */
+   else if(f.dashKind==="satori"){foe.takeDamage(f._spikeDmg||65,140,f.dashDir,{melee:true,skill:true,col:"#e2384a",fx:"#e2384a"});}
    else if(f.dashKind==="tempest"){foe.takeDamage(55,260,f.dashDir,{melee:true,skill:true,col:"#e2384a",fx:"#ff8fa0"});
     foe.defBreak=4;statusFloat(foe,"DEFENSE BREAK","#ffd23f");
     foe.bleedDps=10;foe.bleed=Math.max(foe.bleed,2);ringFx(foe.x,foe.centerY,"#e2384a",70);}
@@ -1216,6 +1370,7 @@ function updateFighter(f,dt){
     foe.bleedDps=12;foe.bleed=Math.max(foe.bleed,4);statusFloat(foe,"BLEED","#ff5e6e");}
    else{const dmg=68;foe.takeDamage(dmg,190,f.dashDir,{melee:true,skill:true,col:"#9c1d2e",fx:"#9c1d2e"});heal(f,Math.round(dmg*.6));}
   }
+  if(f.dashT<=0&&satDash&&f.dashKind!=="satback"&&f.dashKind!=="cblow")f.facing=Math.sign(other(f).x-f.x)||f.facing;   /* Crimson Crossing / dive: switch sides (cblow keeps its facing — its sprites already show the turn) */
  }
  /* DoTs (bypass armor & barrier) */
  f.dotT-=dt;
@@ -1229,8 +1384,10 @@ function updateFighter(f,dt){
  /* physics */
  if(f.stun<=0){f.x+=f.vx*dt;if(!f.alive)f.vx*=Math.pow(.02,dt);}
  if(!f.onGround){
-  const airStall=(f.state==="attack"&&IMG_SPRITES[f.d.id]&&IMG_SPRITES[f.d.id].airatk1);   /* stop falling during an air-attack swing (hover) */
-  if(airStall)f.vy=0; else f.vy+=GRAV*dt;
+  const airStall=(f.state==="attack"&&IMG_SPRITES[f.d.id]&&IMG_SPRITES[f.d.id].airatk1)
+    ||(f.d.id==="satori"&&f.state==="special"&&f._airHold>0)   /* hover during an air-attack swing OR the air Skill A throw (hang until the projectiles are out) */
+    ||(f.d.id==="satori"&&f.state==="special"&&f.poseSkill===1&&!f.onGround&&f.dashKind!=="satdive");   /* hover during air Skill B wind-up (air1->air3); the satdive dive-dash then drops him */
+  if(airStall){f.vy=0;} else f.vy+=GRAV*dt;
   const py=f.y;f.y+=f.vy*dt;
   if(f.vy>0){for(const pl of platforms()){
    if(py<=pl.y+0.5&&f.y>=pl.y&&f.x>pl.x-6&&f.x<pl.x+pl.w+6){
@@ -1243,6 +1400,7 @@ function updateFighter(f,dt){
  f.x=Math.max(WALL_L,Math.min(WALL_R,f.x));   /* invisible walls */
  if(typeof CARS_WALL_X!=="undefined"&&f.x<CARS_WALL_X)f.x=CARS_WALL_X;   /* front cars = left map limit */
  if(f.state==="walk")f.walkPhase+=Math.abs(f.vx)*dt*.03*(f.d.id==="haydar"?.55:(f.d.id==="putuk"?1.2:1));/* stride cadence: haydar .55; putuk 1.2 (compensates his higher move-speed so the run animation keeps the same rate) */
+ if(f.d.id==="satori")updateSatoriRun(f,dt);   /* SATORI run-cycle state machine (state is final by here) */
 }
 const SOLID_GAP=()=>S(26);   /* minimum center-to-center distance while both are grounded */
 function resolveFighterCollision(){
@@ -1267,6 +1425,7 @@ function landImpact(f,vy){
  if(vy>520&&f.alive){
   const d=Math.min(45,Math.round((vy-520)*0.18)+4);
   f.hp=Math.max(1,f.hp-d);f.stun=Math.max(f.stun,.25);f.hitFlash=.08;
+  if(f.d.id==="satori"&&(f.kbT||0)<=0&&IMG_SPRITES.satori&&IMG_SPRITES.satori.falldmg1){f.fallDmgT=0.32;f.stun=Math.max(f.stun,.19);f.vx=0;}   /* genuine hard landing (not a knockback): touchdown -> get-up; kill horizontal momentum so he lands planted (no slide) */
   floaters.push({x:f.x,y:MZY(f,64),txt:"FALL -"+d,t:0,col:"#c9b8a0",size:6});
   for(let i=0;i<6;i++)particles.push({x:f.x+rand(-10,10),y:f.y,vx:rand(-60,60),vy:rand(-80,-20),r:rand(1,2),col:"#a89880",t:0,life:.3});
   shake=Math.max(shake,.2);
@@ -1276,6 +1435,43 @@ function landImpact(f,vy){
 function updateProjectiles(dt){
  for(let i=projectiles.length-1;i>=0;i--){
   const p=projectiles[i];if(!p)continue;
+  if(p.type==="satcspike"){/* SATORI Crouch C — thrown spike: a diagonal arc from his hand down to the ground target */
+   p.age=(p.age||0)+dt;p.vy+=(p.g||1500)*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;
+   if(Math.random()<0.6)particles.push({x:p.x+rand(-4,4),y:p.y+rand(-6,6),vx:rand(-18,18),vy:rand(-8,30),r:rand(1,2.4),col:Math.random()<0.5?"#ff2a3a":"#ff8fa0",t:0,life:rand(.12,.3)});
+   if(p.vy>0&&p.y>=GROUND){/* landed: plant the hidden spike here + impact burst */
+    const lx=p.x;
+    for(let j=projectiles.length-1;j>=0;j--)if(projectiles[j].type==="sattrap"&&projectiles[j].owner===p.owner)projectiles.splice(j,1);
+    projectiles.push({type:"sattrap",x:lx,y:GROUND,vx:0,r:8,dmg:p.dmg,stun:p.stun,eburn:p.eburn,owner:p.owner,col:"#e2384a",age:0});
+    statusFloat(p.owner,"SPIKE SET","#e2384a");
+    ringFx(lx,GROUND,"#e2384a",44);ringFx(lx,GROUND,"#ff8fa0",28);spawnHitFx(lx,GROUND-10,"#ff8fa0",12);shake=Math.max(shake,.28);
+    for(let s=0;s<16;s++)particles.push({x:lx+rand(-8,8),y:GROUND,vx:rand(-70,70),vy:-rand(30,170),r:rand(1.5,3),col:s%2?"#e2384a":"#ff8fa0",t:0,life:rand(.2,.5)});
+    projectiles.splice(i,1);continue;}
+   continue;
+  }
+  if(p.type==="satmineexp"){/* the mine's eruption — plays Spike-mine-explosion 0..5 once, then gone */
+   p.age=(p.age||0)+dt;if(p.age>=0.42){projectiles.splice(i,1);}
+   continue;
+  }
+  if(p.type==="sattrap"){/* SATORI Crouch C — planted spike mine (visible), erupts when the foe crosses it (4s life) */
+   p.age=(p.age||0)+dt;p.y=GROUND;
+   if(Math.random()<0.12)particles.push({x:p.x+rand(-7,7),y:GROUND-rand(0,4),vx:rand(-10,10),vy:-rand(4,20),r:rand(1,1.8),col:Math.random()<0.5?"#ff2a3a":"#7a1020",t:0,life:rand(.2,.4)});   /* faint idle glow */
+   const foe=other(p.owner);
+   if(foe.alive&&foe.onGround&&Math.abs(foe.x-p.x)<S(26)){/* stepped on -> AREA blast */
+    const R=S(58);
+    if(Math.abs(foe.x-p.x)<R&&Math.abs(foe.hurtY-GROUND)<S(72)){
+     foe.takeDamage(p.dmg,320,Math.sign(foe.x-p.x)||foe.facing||1,{skill:true,energy:true,col:"#e2384a",fx:"#ff8fa0"});   /* explosion PUSH + launch (like the other blasts) */
+     applyStun(foe,p.stun);statusFloat(foe,"STUNNED","#e2384a");
+     if(p.eburn){foe.burnDps=8;foe.burn=Math.max(foe.burn,2);statusFloat(foe,"ENERGY BURN","#ff8fa0");}}
+    hitProps(p.x,1,R,p.dmg,p.owner);hitProps(p.x,-1,R,p.dmg,p.owner);   /* area blast damages nearby props too */
+    if(typeof hitDog==="function"&&!hitDog(p.x,1,R,p.owner,p.dmg))hitDog(p.x,-1,R,p.owner,p.dmg);   /* ...and the roaming dog */
+    projectiles.push({type:"satmineexp",x:p.x,y:GROUND,owner:p.owner,age:0});   /* eruption animation */
+    ringFx(p.x,GROUND,"#e2384a",72);ringFx(p.x,GROUND-10,"#5e0812",54);ringFx(p.x,GROUND-6,"#ff8fa0",44);spawnHitFx(p.x,GROUND-24,"#ff8fa0",16);shake=Math.max(shake,.5);
+    for(let s=0;s<14;s++)particles.push({x:p.x+rand(-10,10),y:GROUND,vx:rand(-90,90),vy:-rand(40,220),r:rand(2,4.4),col:s%3===0?"#3a060c":(s%3===1?"#e2384a":"#ff8fa0"),t:0,life:rand(.3,.7)});   /* dark-red + crimson blast */
+    for(let s=0;s<9;s++)particles.push({x:p.x+rand(-16,16),y:GROUND,vx:rand(-55,55),vy:-rand(20,90),r:rand(3,6),col:"#2a060c",t:0,life:rand(.4,.8)});   /* dark-red smoke chunks */
+    projectiles.splice(i,1);continue;}
+   if(p.age>4){projectiles.splice(i,1);continue;}
+   continue;
+  }
   if(p.type==="pinch"){p.wob=(p.wob||0)+dt*12;
    if(p.mincik===undefined){p.mincik=1;p.mincT=0;p.mincShow=0.42;} /* MINCIK pops immediately on launch */
    else{p.mincT+=dt;
@@ -1319,6 +1515,16 @@ function updateProjectiles(dt){
    p.vy+=Math.sign(dy)*300*dt;p.vy=Math.max(-130,Math.min(130,p.vy));}
   if(p.type==="grenade")p.vy=(p.vy||0)+700*dt;
   p.x+=p.vx*dt;p.y+=(p.vy||0)*dt;
+  if(p.type==="satp"&&p.saw){   /* GROUND SAW: spin up slow -> fast (exponential), ride the ground line, throw cut sparks */
+   p.y=GROUND;
+   p.sawV=Math.min(220,(p.sawV||4)*Math.pow(7,dt));   /* much steeper exponential spin-up to a much higher cap */
+   p.sawAng=(p.sawAng||0)+p.sawV*dt*Math.sign(p.vx||1);
+   const dir=Math.sign(p.vx)||1,sp=Math.min(1,(p.sawV-4)/160);   /* more sparks as it spins faster */
+   for(let s=0;s<1+Math.round(sp*2);s++)particles.push({x:p.x-dir*rand(6,18),y:GROUND-rand(0,3),vx:-dir*rand(60,220),vy:-rand(20,140),r:rand(1,2.6),col:Math.random()<0.5?"#ff2a3a":"#ffd0d6",t:0,life:rand(.12,.3)});
+   if(p._lastCutX==null||Math.abs(p.x-p._lastCutX)>=5){p._lastCutX=p.x;   /* chainsaw kerf: a channel between two wavy lines, glowing dark red */
+    sawCuts.push({x:p.x,t:0,life:0.55});if(sawCuts.length>360)sawCuts.shift();}
+  }else if(p.type==="satp"){   /* red light trail behind each Crimson shuriken / spike */
+   particles.push({x:p.x-p.vx*0.012,y:p.y-(p.vy||0)*0.012,vx:rand(-14,14),vy:rand(-14,14),r:rand(1.2,2.6),col:Math.random()<0.5?"#ff2a3a":"#ff8fa0",t:0,life:rand(.12,.26)});}
   if(p.type==="rocket"){const dir=Math.sign(p.vx)||1,bx=p.x-dir*S(11),by=p.y;   /* fire + smoke from the rocket's tail */
    for(let n=0;n<2;n++)particles.push({x:bx+rand(-2,2),y:by+rand(-2,2),vx:-dir*rand(40,110)+rand(-15,15),vy:rand(-25,25),r:rand(1,2.5),col:["#ffd23f","#f28022","#fff2c8"][n%3],t:0,life:rand(.10,.22)});
    particles.push({x:bx,y:by+rand(-2,2),vx:-dir*rand(10,45),vy:-rand(6,26),r:rand(2,4),col:["#787878","#8a8a8a","#9a9a9a"][Math.floor(Math.random()*3)],t:0,life:rand(.3,.6)});}
@@ -1379,6 +1585,21 @@ function updateProjectiles(dt){
     foe.takeDamage(p.dmg,70,Math.sign(p.vx),{ranged:true,skill:true,col:p.col,fx:p.col});
     p.owner._primeHits++;
     if(p.owner._primeHits>=3){foe.weakenT=3;foe.weakenAmt=.10;statusFloat(foe,"DAMAGE DOWN","#f2b632");}
+   }else if(p.type==="satp"){/* SATORI Skill A — Crimson Projectiles (shuriken / spike volley / pinning) */
+    foe.takeDamage(p.dmg,p.kbv||50,Math.sign(p.vx),{ranged:true,skill:true,energy:true,col:p.col,fx:p.col});
+    if(p.eburn){foe.burnDps=8;foe.burn=Math.max(foe.burn,2);statusFloat(foe,"ENERGY BURN","#ff8fa0");}
+    if(p.vol===p.owner._satVol){p.owner._satHits++;
+     if(p.owner._satHits>=p.need){
+      if(p.eff==="stagger"){applyStun(foe,p.dur);statusFloat(foe,"STAGGER","#ff8fa0");}
+      else if(p.eff==="stun"){applyStun(foe,p.dur);statusFloat(foe,"STUNNED","#ff4a5a");}
+      else if(p.eff==="slow"){foe.slowT=p.dur;foe.slowAmt=p.slowAmt;statusFloat(foe,"SLOWED","#b8e6c8");}
+      else if(p.eff==="root"){foe.rootT=p.dur;statusFloat(foe,"ROOTED","#e2384a");}
+     }}
+   }else if(p.type==="satult"){/* SATORI Ultimate — Crimson Pursuit homing spike */
+    foe.takeDamage(p.dmg,90,Math.sign(p.vx)||p.owner.facing,{ranged:true,skill:true,energy:true,col:p.col,fx:p.col});
+    ringFx(p.x,p.y,"#e2384a",40);
+    if(!p.owner._ultConn){p.owner._ultConn=true;applyStun(foe,p.para||0.9);statusFloat(foe,"CRIMSON PARALYSIS","#ff4a5a");
+     if(!foe.onGround)foe.vy=Math.max(foe.vy,240);}   /* airborne foe loses control & falls */
    }else if(p.type==="rocket"){explodeRocket(p);
    }else{
     foe.takeDamage(p.dmg,p.type==="chi"?150:(p.type==="shur"||p.type==="bullet"||p.type==="smg"?40:80),Math.sign(p.vx),
@@ -1454,7 +1675,7 @@ function updateFx(dt){
 /* Resets per-round state (projectiles/particles/props/platforms), repositions both fighters, resets the timer, and announces 'ROUND N... FIGHT!'. */
 function startRound(){
  onlineRoundId++;   /* bump the online round epoch so stale delayed callbacks are ignored */
- projectiles=[];particles=[];floaters=[];rings=[];codexes=[];groundFx=[];
+ projectiles=[];particles=[];floaters=[];rings=[];codexes=[];groundFx=[];ghosts=[];sawCuts=[];
  if(typeof resetDog==="function")resetDog();   /* clear the roaming dog + kill-buffs each round */
  if(typeof resetToilet==="function")resetToilet();   /* reset the toilet event each round */
  if(typeof resetCars==="function")resetCars();   /* reset the car explosion event each round */
@@ -1571,9 +1792,14 @@ function drawStage(t){
   const iw=STAGE_BG.naturalWidth||STAGE_BG.width||WORLD_W;
   const ih=STAGE_BG.naturalHeight||STAGE_BG.height||H;
   const EXT=900;
+  /* SMOOTH the backdrop: it's a painting, not pixel art. With nearest-neighbor (the global
+     default) the camera zoom/pan resamples it row-by-row every frame -> the crawl/"tearing"
+     while the camera moves. Bilinear makes the moving backdrop stable. Restore after. */
+  const _sm=ctx.imageSmoothingEnabled;ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality="high";
   ctx.drawImage(STAGE_BG, 0,0,iw,2, 0,-EXT, WORLD_W, EXT);        /* sky, extended upward */
   ctx.drawImage(STAGE_BG, 0,ih-2,iw,2, 0,H, WORLD_W, EXT);        /* ground, extended downward */
   ctx.drawImage(STAGE_BG, 0,0,iw,ih, 0,0, WORLD_W, H);           /* the painting itself */
+  ctx.imageSmoothingEnabled=_sm;
  }else{
   ctx.fillStyle="#b37ba2";ctx.fillRect(-400,-900,WORLD_W+800,900+H);
   ctx.fillStyle="#c3a37e";ctx.fillRect(-400,164,WORLD_W+800,H-164+900);
@@ -1886,6 +2112,11 @@ function drawFighter(f,t){
    else fr=(img.kb3||img.kb2||img.kb1);                    /* getting back up (final part) */
   }
   else if(f.koPose>0&&img.ko&&!img.kb1)fr=(img.ko2&&(f.downT||0)>0.12)?img.ko2:img.ko;   /* fallback: chars WITHOUT knockback art */
+  else if(f.d.id==="satori"&&f.fallDmgT>0&&f.onGround&&f.alive&&(f.kbT||0)<=0&&(f.koPose||0)<=0&&img.falldmg1){
+   /* HARD LANDING committed sequence — ABOVE the stun/hit-flash fallback so it never flashes idle:
+      falldmg1 = touchdown (held through the impact + stun) -> falldmg2 = quick get-up -> idle. */
+   fr=(f.fallDmgT>0.24)?img.falldmg1:(img.falldmg2||img.falldmg1);
+  }
   else if(f.d.id==="necmi"&&f.state==="special"&&f.skillAT>0&&f.poseSkill===0&&img.skillA){
    /* PINCH-MASS SHOT pose must survive incidental stun/hit-flash so the wind-up/release always reads */
    fr=(img.skillA2&&f.skillAT>0.50)?img.skillA2:img.skillA;}
@@ -1925,8 +2156,51 @@ function drawFighter(f,t){
   else if(f.diveT>0&&img.skillC){/* GRAVITY DIVE: launch -> dive */
    const p=Math.max(0,Math.min(1,1-f.diveT/1.15));
    fr=p<0.30?img.skillC:(img.skillC2||img.skillC);}
+  else if(f.d.id==="satori"&&special&&f.poseSkill===0&&f.onGround&&!f.crouching&&img.skA1&&f.t<.42){
+   /* STANDING Skill A pose: 1st charge -> skA1, 2nd charge -> skA2 (set at cast in ABILITIES.satori[0]). */
+   fr=(f._aShot===2&&img.skA2)?img.skA2:img.skA1;
+  }
+  else if(f.d.id==="satori"&&special&&f.poseSkill===0&&f.onGround&&f.crouching&&img.skAcr1&&f.t<.42){
+   /* CROUCH Skill A pose: 1st charge -> skAcr1, 2nd charge -> skAcr2 (same 2-charge principle). */
+   fr=(f._aShot===2&&img.skAcr2)?img.skAcr2:img.skAcr1;
+  }
+  else if(f.d.id==="satori"&&special&&f.poseSkill===0&&!f.onGround&&img.skAair1&&f.t<.7){
+   /* AIR Skill A — ONE pose per throw, both sprites shown once (no repeat): throw 1 = first pose,
+      throw 2 = second pose. Order flips per charge (1st cast 1->2, 2nd cast 2->1). Swap sits in the
+      gap between the two throws (throw1 f.t≈0.18, throw2 f.t≈0.40). */
+   const two=img.skAair2||img.skAair1;
+   const order=(f._aShot===2)?[two,img.skAair1]:[img.skAair1,two];
+   fr=(f.t<0.30)?order[0]:order[1];
+  }
+  else if(f.d.id==="satori"&&special&&f.poseSkill===1&&f.onGround&&!f.crouching&&f.skillContext!=="air"&&img.skB1){
+   /* STANDING Skill B (Crimson Crossing): B1->B2->B3 = wind-up IN PLACE; B4 = the dash (shown once it fires). */
+   fr=(f.dashKind==="satcross")?(img.skB4||img.skB3):(f.t<0.09?img.skB1:(f.t<0.18?img.skB2:img.skB3));
+  }
+  else if(f.d.id==="satori"&&special&&f.poseSkill===1&&f.onGround&&f.crouching&&img.cskB1){
+   /* CROUCH Skill B (Low Shadow Crossing) 5-frame sequence: charge -> dash -> slide-stop -> close -> reverse slash. */
+   fr=f.t<0.20?img.cskB1:(f.t<0.36?img.cskB2:(f.t<0.50?img.cskB3:(f.t<0.60?img.cskB4:img.cskB5)));
+  }
+  else if(f.d.id==="satori"&&special&&f.poseSkill===1&&f.skillContext==="air"&&img.skBair1){
+   /* AIR Skill B (Crimson Crescent Dive): air1 (hover) -> air2 (blade drawn, dark-red lightning) -> air3 wind-up,
+      then air4 = the dive-dash. He HOLDS skBair4 for the entire dash — hitting the foe never cuts the pose —
+      and snaps to the landing sprite the instant he touches down after passing through. */
+   fr=f.onGround?(img.landing||img.skBair4)
+     :((f.dashKind==="satdive")?(img.skBair4||img.skBair3):(f.t<0.14?img.skBair1:(f.t<0.30?img.skBair2:img.skBair3)));
+  }
+  else if(f.d.id==="satori"&&special&&f.poseSkill===2&&f.onGround&&f.crouching&&img.cskC1){
+   /* CROUCH Skill C (Crimson Spike Trap) 3-frame plant: reach -> press into floor -> settle. */
+   fr=f.t<0.14?img.cskC1:(f.t<0.28?img.cskC2:img.cskC3);
+  }
   else if(special&&f.poseSkill>=0&&img["skill"+["A","B","C"][f.poseSkill]]&&(f.t<.45||f.windmill>0))fr=img["skill"+["A","B","C"][f.poseSkill]];
-  else if(f.blocking&&img.block)fr=img.block;
+  else if(f.blocking&&img.block){
+   /* guard pose; block-impact pose briefly after a blocked hit. CROUCH-block (crouch+block held) uses the low variant. */
+   const hitNow=(f.d.id==="satori"&&(f._blockHitT||0)>0);
+   if(f.d.id==="satori"&&f._crouchBlock&&img.cblock)fr=(hitNow&&img.cblockhit)?img.cblockhit:img.cblock;
+   else fr=(hitNow&&img.blockhit)?img.blockhit:img.block;
+  }
+  else if(f.d.id==="satori"&&f.crouching&&f.onGround&&f.hurtT>0&&f.alive&&f.state!=="attack"&&(f.kbT||0)<=0&&img.crouchhit){
+   fr=img.crouchhit;   /* CROUCH hit reaction: struck while crouching */
+  }
   else if(f.crouching&&f.onGround&&f.state!=="attack"&&img.crouch){
    /* going DOWN into the crouch: crouch -> crouch2 -> crouch3, then hold crouch3 (steps aside while attacking) */
    const ct=f.crouchT||0;
@@ -1938,8 +2212,16 @@ function drawFighter(f,t){
    fr=(img.jump2&&f.jumpWindup<JUMP_WINDUP*0.7)?img.jump2:img.jump;
   }
   else if(f.d.id==="satori"&&f.state==="attack"&&!f.onGround&&img.airatk1){
-   /* AIR combo: each attack press = ONE hit = one sprite (airatk1 / airatk2 / airatk3 by combo index) */
-   fr=img["airatk"+((f.atkHit||0)+1)]||img.airatk1;
+   /* AIR combo: hits 1 & 2 = one sprite each; hit 3 = a 2-frame sequence (airatk3a wind-up -> airatk3b strike). */
+   const hi=f.atkHit||0;
+   if(hi===2&&img.airatk3a)fr=(f.t<0.16)?img.airatk3a:(img.airatk3b||img.airatk3a);   /* wind-up held, then strike lands with the hit (~f.t 0.16) */
+   else fr=img["airatk"+(hi+1)]||img.airatk1;
+  }
+  else if(f.d.id==="satori"&&f._airBlockT>0&&!f.onGround&&f.alive&&img.airblock){
+   fr=img.airblock;   /* AIR BLOCK: 0.5s reaction guard pose while airborne */
+  }
+  else if(f.d.id==="satori"&&f.hurtT>0&&!f.onGround&&(f.kbT||0)<=0&&f.alive&&img.damageair){
+   fr=img.damageair;   /* AIR HIT reaction: struck mid-air (a heavy launch uses kb1 instead) */
   }
   else if(!f.onGround&&f.alive&&img.jump){
    if(f.vy>30&&img.falling)fr=img.falling;                 /* on the way DOWN */
@@ -1959,12 +2241,39 @@ function drawFighter(f,t){
    fr=an>2?img[["attack","attack2","attack3","attack4"][((f._atkStep-1)%an+an)%an]]
           :((img.attack2&&f._atkAlt)?img.attack2:img.attack);
   }
+  else if(f.d.id==="satori"&&f.hurtT>0&&f.onGround&&!f.crouching&&f.alive&&(f.koPose||0)<=0&&(f.kbT||0)<=0&&img.hit1){
+   /* STANDING HIT reaction: random pose. LOW variant when a CROUCHING foe struck from below. */
+   if(f._hitLow&&img.hitlow1)fr=(f._hitFrame===2&&img.hitlow2)?img.hitlow2:img.hitlow1;
+   else fr=(f._hitFrame===2&&img.hit2)?img.hit2:img.hit1;
+  }
+  else if(f.d.id==="satori"&&f._locoPhase==="stop"&&f.onGround&&f.alive&&img.run0){
+   fr=img["run"+f._runFrame];   /* RUN->IDLE exit: hold the compact pose (F2/F5) briefly, then idle takes over */
+  }
   else if(f.state==="walk"&&f.onGround&&(img.run0||img.run)){
    if(img.run0){let n=img._rn;if(!n){n=0;while(img["run"+n])n++;img._rn=n;}
-    fr=img["run"+(Math.floor(f.walkPhase*2.2)%n)];}
+    /* SATORI: frame is driven by his run-cycle state machine (per-frame stepped timing, F2-start).
+       Other run-cycle heroes keep the distance-locked cadence. */
+    if(f.d.id==="satori")fr=img["run"+((f._runFrame||0)%n)];
+    else fr=img["run"+(Math.floor(f.walkPhase*2.2)%n)];}
    else fr=img.run;
   }
   if(!fr)fr=img.idle;   /* a state whose sprite isn't added yet (mid-update) falls back to idle */
+  /* SATORI: soften transitions BETWEEN moves — when his state changes, briefly dissolve the previous
+     pose out over the new one. In-animation frame swaps (run cycle, attack strikes) keep the same state,
+     so they stay crisp. */
+  let _xfPrev=null,_xfA=0;
+  if(f.d.id==="satori"){
+   const XF=0.09, ddt=Math.max(0,Math.min(0.05,tGlobal-(f._fbLast||tGlobal)));f._fbLast=tGlobal;
+   /* NO crossfade for the run — it ghosts the fast run frames. Only blend transitions between other
+      moves (attack/idle/skill/jump...); skip whenever walk is on either side of the change. */
+   if(f.state!==f._fbState){
+    if(f._fbCur&&f._fbCur!==fr&&f.state!=="walk"&&f._fbState!=="walk"){f._fbPrev=f._fbCur;f._fbT=XF;}
+    f._fbState=f.state;}
+   if(f.state==="walk")f._fbT=0;   /* cancel any lingering blend the moment he starts running */
+   if(f._fbT>0){f._fbT-=ddt;if(f._fbT<0)f._fbT=0;}
+   f._fbCur=fr;
+   if(f._fbT>0&&f._fbPrev&&f._fbPrev!==fr){_xfPrev=f._fbPrev;_xfA=f._fbT/XF;}
+  }
   ctx.save();
   ctx.imageSmoothingEnabled=false;
   if(f.facing===-1)ctx.scale(-1,1);
@@ -1973,6 +2282,9 @@ function drawFighter(f,t){
    if(f.d.id==="agron"||f.d.id==="munevver"){
     /* AGRON & MUNEVVER don't walk — they levitate. Continuous hover, no footfalls. */
     bob=-2+Math.sin(tGlobal*2.4)*1.15;
+   }else if(f.d.id==="satori"){
+    /* SATORI's hi-res run frames already carry their own bounce — no engine bob (avoids a double-bob jitter). */
+    bob=0;
    }else{
     /* two contacts per cycle -> body rises between footfalls */
     const ph=Math.sin(f.walkPhase*2.2*Math.PI*2 - Math.PI/2);
@@ -1989,10 +2301,14 @@ function drawFighter(f,t){
   if(fr.img.complete&&fr.img.naturalWidth>0){
    /* HI-RES ART: when the source PNG is much larger than the draw size, downscale it SMOOTHLY
       (bilinear/high) to preserve detail; keep the low-res pixel-art fighters crisp (nearest). */
-   const hires=fr.img.naturalWidth>fr.w*2;
-   ctx.imageSmoothingEnabled=hires; if(hires)ctx.imageSmoothingQuality="high";
-   ctx.drawImage(fr.img,Math.round(-fr.w/2+(fr.dx||0)+lean+edgeShift),Math.round(-fr.h+(fr.foot||0)+bob),fr.w,fr.h);
-   ctx.imageSmoothingEnabled=false;
+   const drawFr=(FR,al)=>{if(!(FR.img&&FR.img.complete&&FR.img.naturalWidth>0))return;
+    const hires=FR.img.naturalWidth>FR.w*2;
+    ctx.imageSmoothingEnabled=hires; if(hires)ctx.imageSmoothingQuality="high";
+    const oa=ctx.globalAlpha;ctx.globalAlpha=oa*al;
+    ctx.drawImage(FR.img,Math.round(-FR.w/2+(FR.dx||0)+lean+edgeShift),Math.round(-FR.h+(FR.foot||0)+bob),FR.w,FR.h);
+    ctx.globalAlpha=oa;ctx.imageSmoothingEnabled=false;};
+   drawFr(fr,1);
+   if(_xfA>0&&_xfPrev)drawFr(_xfPrev,_xfA);   /* SATORI move-transition crossfade: previous pose dissolves out */
   }
   if(toxic)ctx.filter="none";
   /* MASS MORPH: extra churning dough piled around his lower body, hiding his legs inside it */
@@ -2332,8 +2648,35 @@ function drawHUD(){
   ctx.fillText("PRACTICE MODE",W/2,40);}
 }
 /* Draws every live projectile/spirit (bullets, shuriken, Necmi's ghost, grenades, etc.), each with its own trail/spin/glow treatment by type. */
+/* The crouch-C mine + its eruption are ground objects — drawn at the FIGHTER layer (see drawMines), not
+   on top with the other projectiles; skip them here. */
+function drawMines(){
+ for(const p of projectiles){
+  const PUSH=8;   /* nudge the whole thing a little further down onto the floor */
+  if(p.type==="sattrap"){/* planted spike mine — small, ping-pong 1->2->3->2 (i.e. 1-3 then 3-1). Same ground line as the eruption. */
+   const d=PROJ_IMGS["mineg"+[1,2,3,2][Math.floor((p.age||0)/0.16)%4]], SZ=120;
+   if(d&&d.img&&d.img.complete&&d.img.naturalWidth>0){
+    ctx.save();ctx.shadowColor="#ff2a3a";ctx.shadowBlur=6;
+    ctx.drawImage(d.img,Math.round(p.x-SZ/2),Math.round(GROUND-(610/642)*SZ+PUSH),SZ,SZ);ctx.restore();
+   }else{ctx.fillStyle="#e2384a";ctx.fillRect(p.x-4,GROUND-6,8,6);}
+   if(Math.random()<0.4){/* little red electricity crackling inside the trap */
+    ctx.save();ctx.globalAlpha=0.9;ctx.lineCap="round";ctx.shadowColor="#ff2a3a";ctx.shadowBlur=5;
+    ctx.strokeStyle=Math.random()<0.5?"#ff5a68":"#ffe0e4";ctx.lineWidth=1;
+    let px=p.x+rand(-8,8),py=GROUND-rand(1,7)+PUSH;ctx.beginPath();ctx.moveTo(px,py);
+    const seg=2+Math.floor(rand(0,2));for(let s=0;s<seg;s++){px+=rand(-5,5);py-=rand(2,6);ctx.lineTo(px,py);}
+    ctx.stroke();ctx.restore();}
+  }else if(p.type==="satmineexp"){/* mine eruption — 6-frame one-shot (minex0 lead-in .. minex5); smaller SZ, SAME ground line */
+   const fi=Math.min(5,Math.floor((p.age||0)/0.065)), d=PROJ_IMGS["minex"+fi], SZ=74;
+   if(d&&d.img&&d.img.complete&&d.img.naturalWidth>0){
+    ctx.save();ctx.shadowColor="#ff2a3a";ctx.shadowBlur=15;
+    ctx.drawImage(d.img,Math.round(p.x-SZ/2),Math.round(GROUND-(610/642)*SZ+PUSH),SZ,SZ);ctx.restore();
+   }
+  }
+ }
+}
 function drawProjectiles(){
  for(const p of projectiles){
+  if(p.type==="sattrap"||p.type==="satmineexp")continue;   /* drawn in drawMines (fighter layer) instead */
   if(p.type==="ghost"){
    const N=IMG_SPRITES.necmi;
    const spr=(N&&N.ghostfly2&&(Math.sin((p.wob||0)*1.4)>0))?N.ghostfly2:(N&&N.ghostfly);
@@ -2419,6 +2762,49 @@ function drawProjectiles(){
     ctx.rotate(tGlobal*16*Math.sign(p.vx));
     ctx.drawImage(d.img,-Math.round(d.w/2),-Math.round(d.h/2),d.w,d.h);ctx.restore();
    }else{ctx.fillStyle=p.col;ctx.fillRect(p.x-3,p.y-1,6,2);ctx.fillRect(p.x-1,p.y-3,2,6);}
+  }else if(p.type==="satp"&&p.saw){/* GROUND SAW: buzz-wheel, ~1/4 sunk into the floor (clipped at the ground line) */
+   const d=PROJ_IMGS.shuriken, sc=6.3, dw=Math.round(d.w*sc), dh=Math.round(d.h*sc);
+   /* Blade art occupies canvas x246..427 / y230..418 of 642 -> its CENTER is (336.5,324), NOT the canvas
+      centre. Rotate about the blade centre (offset ox/oy) so it spins in place instead of orbiting (bouncing). */
+   const ox=-Math.round(336.5/642*dw), oy=-Math.round(324/642*dh);
+   const half=94/642*dh;   /* blade half-height (canvas 94px of 188) */
+   const cy=Math.round(GROUND-(half-0.25*2*half));   /* sink exactly 1/4 of the blade below the ground line */
+   ctx.save();
+   ctx.beginPath();ctx.rect(-100000,-100000,200000,GROUND+100000);ctx.clip();   /* hide everything below the ground line */
+   ctx.translate(Math.round(p.x),cy);
+   ctx.shadowColor="#ff2a3a";ctx.shadowBlur=18;
+   ctx.rotate(p.sawAng||0);ctx.scale(-1,1);   /* mirror the blade (flip) — spin direction preserved */
+   if(d&&d.img.complete&&d.img.naturalWidth>0){ctx.drawImage(d.img,ox,oy,dw,dh);ctx.shadowBlur=10;ctx.drawImage(d.img,ox,oy,dw,dh);}
+   else{ctx.fillStyle="#ff4a5a";ctx.fillRect(-Math.round(dw/2),-3,dw,6);ctx.fillRect(-3,-Math.round(dh/2),6,dh);}
+   ctx.restore();
+  }else if(p.type==="satp"){
+   const d=(p.shape==="shuriken")?PROJ_IMGS.shuriken:PROJ_IMGS.spike;
+   const sc=(p.shape==="shuriken")?2.0:1.9;   /* bigger, hand-thrown shurikens + spikes */
+   if(d&&d.img.complete&&d.img.naturalWidth>0){
+    const dw=Math.round(d.w*sc),dh=Math.round(d.h*sc);
+    ctx.save();ctx.translate(Math.round(p.x),Math.round(p.y));
+    ctx.shadowColor="#ff2a3a";ctx.shadowBlur=14;   /* red glow — shurikens AND spikes */
+    if(p.shape==="shuriken")ctx.rotate(tGlobal*16*Math.sign(p.vx));
+    else ctx.rotate(Math.atan2(p.vy||0,p.vx||1));
+    ctx.drawImage(d.img,-Math.round(dw/2),-Math.round(dh/2),dw,dh);
+    ctx.shadowBlur=8;ctx.drawImage(d.img,-Math.round(dw/2),-Math.round(dh/2),dw,dh);   /* second pass deepens the glow */
+    ctx.restore();
+   }else{ctx.fillStyle=p.col||"#ff4a5a";ctx.fillRect(p.x-5,p.y-2,10,4);ctx.fillRect(p.x-2,p.y-5,4,10);}
+  }else if(p.type==="satcspike"){/* thrown crouch-C spike: 4-frame animation, oriented along its arc */
+   const d=PROJ_IMGS["cspike"+(1+(Math.floor((p.age||0)/0.06)%4))], SZ=92;
+   ctx.save();ctx.translate(Math.round(p.x),Math.round(p.y));
+   ctx.rotate(Math.atan2(p.vy||0,p.vx||0.0001)+Math.PI/2);   /* the vertical blade aligns with its velocity */
+   ctx.shadowColor="#ff2a3a";ctx.shadowBlur=12;
+   if(d&&d.img&&d.img.complete&&d.img.naturalWidth>0)ctx.drawImage(d.img,-SZ/2,-SZ/2,SZ,SZ);
+   else{ctx.fillStyle="#e2384a";ctx.fillRect(-3,-SZ/2,6,SZ);}
+   ctx.restore();
+  }else if(p.type==="satult"){
+   const d=PROJ_IMGS.spike;
+   ctx.save();ctx.translate(Math.round(p.x),Math.round(p.y));ctx.rotate(Math.atan2(p.vy||0,p.vx||1));
+   ctx.shadowColor="#e2384a";ctx.shadowBlur=10;
+   if(d&&d.img.complete&&d.img.naturalWidth>0)ctx.drawImage(d.img,-Math.round(d.w*0.9),-Math.round(d.h*0.9),Math.round(d.w*1.8),Math.round(d.h*1.8));
+   else{ctx.fillStyle="#e2384a";ctx.fillRect(-11,-3,22,6);ctx.fillStyle="#ff8fa0";ctx.fillRect(5,-2,8,4);}
+   ctx.restore();
   }else if(p.type==="shur"){const d=Math.sign(p.vx);
    ctx.fillStyle=p.col;ctx.fillRect(p.x-2,p.y-1,4,2);ctx.fillRect(p.x-1,p.y-2,2,4);
    ctx.fillStyle="#ffb0ba";ctx.fillRect(p.x+d-1,p.y-1,2,2);
@@ -2592,6 +2978,54 @@ function drawGroundFx(){
   ctx.restore();
  }
 }
+/* Draws the ground-saw KERF: a channel between two gently-wavy parallel lines (the cut edges) with a
+   small gap, the space between glowing DARK RED. The wave comes from a continuous function of x, so the
+   per-mark segments join into two flowing (not dead-straight) lines. Each mark fades out. */
+function drawSawCuts(){
+ ctx.save();ctx.lineCap="round";
+ const wob=x=>Math.sin(x*0.06)*0.9+Math.sin(x*0.23+1.3)*0.4;   /* mostly straight, only a slight waviness */
+ const GAP=1.1, W=4;                                            /* half-gap between the two lines / half segment width */
+ /* short jagged electric bolt from (x,y) in a base direction; occasionally forks a shorter branch */
+ const bolt=(x,y,ang,seg,depth)=>{let px=x,py=y,a2=ang;const br=[];
+  ctx.beginPath();ctx.moveTo(px,py);
+  for(let s=0;s<seg;s++){a2+=rand(-0.9,0.9);const l=rand(1.8,3.6);px+=Math.cos(a2)*l;py+=Math.sin(a2)*l;ctx.lineTo(px,py);
+   if(depth<1&&Math.random()<0.45)br.push([px,py,a2+rand(-1.4,1.4)]);}
+  ctx.stroke();
+  for(const b of br)bolt(b[0],b[1],b[2],1+Math.floor(rand(0,2)),depth+1);};
+ for(const c of sawCuts){
+  const a=Math.max(0,1-c.t/c.life); if(a<=0.02)continue;
+  const x0=c.x-W,x1=c.x+W,w0=wob(x0),w1=wob(x1);
+  ctx.globalAlpha=a;ctx.shadowColor="#c01020";
+  /* dark-red glowing channel between the two lines */
+  ctx.shadowBlur=7;ctx.fillStyle="#4a0812";
+  ctx.beginPath();ctx.moveTo(x0,GROUND-GAP+w0);ctx.lineTo(x1,GROUND-GAP+w1);ctx.lineTo(x1,GROUND+GAP+w1);ctx.lineTo(x0,GROUND+GAP+w0);ctx.closePath();ctx.fill();
+  /* the two edge lines (crimson) */
+  ctx.shadowBlur=4;ctx.strokeStyle="#e42030";ctx.lineWidth=1.4;
+  ctx.beginPath();ctx.moveTo(x0,GROUND-GAP+w0);ctx.lineTo(x1,GROUND-GAP+w1);ctx.stroke();   /* top edge */
+  ctx.beginPath();ctx.moveTo(x0,GROUND+GAP+w0);ctx.lineTo(x1,GROUND+GAP+w1);ctx.stroke();   /* bottom edge */
+  /* flickering short red electric bolts crackling out of the gap in random directions, some forking */
+  if(a>0.4&&Math.random()<0.06){ctx.shadowBlur=6;ctx.lineWidth=1;ctx.strokeStyle=Math.random()<0.5?"#ff5a68":"#ffe0e4";
+   bolt(c.x+rand(-1.5,1.5),GROUND+wob(c.x),-Math.PI/2+rand(-1.6,1.6),2+Math.floor(rand(0,2)),0);}
+ }
+ ctx.restore();
+}
+/* Draws dash afterimages: semi-transparent copies of the dash sprite at the positions it passed through,
+   oldest = faintest, with a soft crimson glow so the trail reads as motion (placed behind the fighters). */
+function drawGhosts(){
+ for(const g of ghosts){
+  const fr=g.frame; if(!fr||!fr.img||!fr.img.complete||!fr.img.naturalWidth)continue;
+  const a=0.40*(1-g.t/g.life); if(a<=0.02)continue;   /* fade with age */
+  ctx.save();
+  ctx.globalAlpha=a;
+  ctx.imageSmoothingEnabled=fr.img.naturalWidth>fr.w*2;
+  ctx.shadowColor="#e2384a";ctx.shadowBlur=6;   /* crimson aura */
+  ctx.translate(Math.round(g.x),Math.round(g.y));
+  if(g.facing===-1)ctx.scale(-1,1);
+  ctx.drawImage(fr.img,Math.round(-fr.w/2+(fr.dx||0)),Math.round(-fr.h+(fr.foot||0)),fr.w,fr.h);
+  ctx.imageSmoothingEnabled=false;
+  ctx.restore();
+ }
+}
 /* =============== MAIN LOOP =============== */
 let lastT=0;
 /* Advances one simulation step: timers, both fighters' input+physics, collision,
@@ -2608,6 +3042,9 @@ function updateSimulation(dt){
   if(b.state==="idle"&&b.alive)b.facing=b.x<a.x?1:-1;}
  updateProjectiles(dt);updateFx(dt);
  for(let i=groundFx.length-1;i>=0;i--){groundFx[i].t+=dt;if(groundFx[i].t>0.30)groundFx.splice(i,1);}   /* advance + cull stationary fx */
+ for(let i=ghosts.length-1;i>=0;i--){ghosts[i].t+=dt;if(ghosts[i].t>=ghosts[i].life)ghosts.splice(i,1);}   /* advance + cull afterimages */
+ {const sawActive=projectiles.some(p=>p.saw);   /* keep the whole gash while the saw is still rolling; fade it only once the saw is gone */
+  for(let i=sawCuts.length-1;i>=0;i--){if(!sawActive)sawCuts[i].t+=dt;if(sawCuts[i].t>=sawCuts[i].life)sawCuts.splice(i,1);}}
  if(typeof updateDog==="function")updateDog(dt);   /* roaming dog hazard (js/dog.js) */
  if(typeof updateToilet==="function")updateToilet(dt);   /* right-side toilet event (js/toilet.js) */
  if(typeof updateCars==="function")updateCars(dt);   /* left-side car explosion event (js/cars.js) */
@@ -2617,11 +3054,22 @@ function updateSimulation(dt){
   const gap=Math.abs(a.x-b.x), margin=140;
   let tz=W/(gap+margin*2);                                   /* zoom needed to fit both fighters + margins */
   tz=Math.max(W/WORLD_W,Math.min(1,tz));                     /* never zoom past showing the whole stage */
-  camScale+=(tz-camScale)*Math.min(1,dt*2.5);               /* ease the zoom slowly */
+  /* QUANTIZE the zoom target to discrete levels (with hysteresis) so the camera HOLDS a level
+     instead of chasing the fighter gap pixel-by-pixel every frame. That constant micro-rescale
+     was resampling the whole scene each frame -> the crawl during zoom-out. Now camScale settles
+     onto a step and stays exactly constant (scene fully static) until the gap crosses a boundary. */
+  const STEP=0.05;
+  let lvl=Math.round(tz/STEP)*STEP;
+  if(camZoomLvl==null)camZoomLvl=lvl;
+  if(Math.abs(tz-camZoomLvl)>STEP*0.75)camZoomLvl=lvl;       /* hysteresis: only re-step when the gap clearly crosses a level */
+  tz=camZoomLvl;
+  camScale+=(tz-camScale)*Math.min(1,dt*6);                 /* ease to the level quickly so the transition is brief */
+  if(Math.abs(tz-camScale)<0.0006)camScale=tz;              /* SETTLE the zoom: snap the last sub-pixel so the backdrop stops resampling (crawl) */
   const camW=W/camScale;                                    /* visible world width */
   const mid=(a.x+b.x)/2, hi=Math.max(0,WORLD_W-camW);
   const want=Math.max(0,Math.min(hi,mid-camW/2));
   camX+=(want-camX)*Math.min(1,dt*CFG.camera.followSpeed);
+  if(Math.abs(want-camX)<0.3)camX=want;                     /* SETTLE the pan: snap the last sub-pixel so a near-still camera is truly static */
   camX=Math.max(0,Math.min(hi,camX));}
 }
 /* Draws the current game state (stage, fighters, projectiles, effects, HUD).
@@ -2632,7 +3080,10 @@ function renderGame(){
  const shk=shake*SETTINGS_shakeScale();
  if(shk>0)ctx.translate(rand(-3,3)*shk*3,rand(-2,2)*shk*3);
  ctx.save();
- ctx.translate(0,GROUND);ctx.scale(camScale,camScale);ctx.translate(-camX,-GROUND);   /* WORLD space: uniform zoom anchored at the ground line, then pan */
+ /* Snap the pan to a whole BACKING pixel (camX * camScale * RENDER_SCALE integer) so the
+    scrolling stage/parallax doesn't sub-pixel-shimmer as the camera follows the fighters. */
+ const _pk=camScale*RENDER_SCALE||1, camXs=Math.round(camX*_pk)/_pk;
+ ctx.translate(0,GROUND);ctx.scale(camScale,camScale);ctx.translate(-camXs,-GROUND);   /* WORLD space: uniform zoom anchored at the ground line, then pan */
  drawStage(tGlobal);                       /* backdrop now scales WITH the fighters (one uniform zoom) */
  if(typeof drawWaves==="function")drawWaves();      /* subtle water shimmer on the sea (js/waves.js) */
  if(typeof drawBirds==="function")drawBirds();      /* ambient seagulls in the sky (js/birds.js) — behind everything */
@@ -2665,7 +3116,20 @@ function renderGame(){
  drawStageObjects(tGlobal);
  if(typeof drawIronboxes==="function")drawIronboxes();   /* ironboxes on/around the scaffolds (js/ironbox.js) — after scaffolds, behind fighters */
  drawGroundFx();   /* double-jump energy stays at the take-off point, behind the fighters */
- fighters.slice().sort((x,y)=>(x.alive?0:-1)-(y.alive?0:-1)).forEach(f=>drawFighter(f,tGlobal));
+ drawGhosts();     /* dash afterimages, behind the fighters */
+ drawSawCuts();    /* glowing-red ground gash from the crouch-A saw */
+ drawMines();      /* crouch-C spike mine + eruption — same layer as the fighters (ground objects) */
+ /* Draw order (later = on top): dead behind; the fighter mid-ACTION (attack/skill/ult) comes forward so
+    it reads clearly; if BOTH are acting, priority goes to whoever started their move first (earlier
+    lastAction). Neutral fighters keep a stable order (no flicker). */
+ const acting=f=>f.alive&&(f.state==="attack"||f.state==="special");
+ fighters.slice().sort((a,b)=>{
+  if(a.alive!==b.alive)return a.alive?1:-1;            /* dead -> drawn first (behind) */
+  const aa=acting(a),ba=acting(b);
+  if(aa!==ba)return aa?1:-1;                           /* the acting fighter -> drawn last (on top) */
+  if(aa&&ba)return (a.lastAction||0)<=(b.lastAction||0)?1:-1;   /* both acting -> earlier starter on top */
+  return 0;                                            /* neither acting -> stable */
+ }).forEach(f=>drawFighter(f,tGlobal));
  if(typeof drawRegulatorGuy==="function")drawRegulatorGuy();   /* diver by the tanks (js/regulator.js) — FOREGROUND, in front of the fighters */
  if(typeof drawDog==="function")drawDog();          /* roaming dog hazard (js/dog.js) */
  if(typeof drawToilet==="function")drawToilet();    /* toilet + caretaker (js/toilet.js) */
